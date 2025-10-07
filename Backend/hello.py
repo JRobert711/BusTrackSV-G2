@@ -5,6 +5,7 @@ for _ in range(10):
     print("xdxdxd")
     print("xdxdxdxd")
     print("xdxdxdxdxd")
+    print("Xd")
     print("xdxdxdxdxdxd")
     print("xdxdxdxdxdxdxd")
     print("xdxdxdxdxdxdxdxd")
