@@ -1,30 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { Login } from './components/Login';
+import { HomePage } from './components/HomePage';
 
 function App() {
-  const [backendData, setBackendData] = useState([{}]);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api")
-      .then(response => response.json())
-      .then(data => {
-        setBackendData(data);
-      })
-      .catch(error => {
-        console.log('Error fetching data:', error);
-      });
+    // Check if user is already logged in
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+    
+    setIsLoading(false);
   }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>BusTrack SV</h1>
-        <p>Welcome to BusTrack SV Application</p>
-        <div>
-          <h2>Backend Data:</h2>
-          <pre>{JSON.stringify(backendData, null, 2)}</pre>
-        </div>
-      </header>
+      {user ? (
+        <HomePage user={user} onLogout={handleLogout} />
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
     </div>
   );
 }
