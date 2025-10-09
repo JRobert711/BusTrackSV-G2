@@ -3,6 +3,7 @@ import { Bus, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
+import { API_ENDPOINTS } from '../config/api';
 
 function Login({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ function Login({ onLogin }) {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(API_ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
