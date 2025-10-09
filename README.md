@@ -53,19 +53,26 @@ BusTrack SV es una aplicación web moderna para el seguimiento y gestión de flo
 
 ## Ejecución
 
-### 1. Iniciar el Backend
+### Opción 1: Script Automático (Recomendado)
+Ejecuta el archivo `start-servers.bat` que iniciará automáticamente ambos servidores.
+
+### Opción 2: Manual
+
+#### 1. Iniciar el Backend
 ```bash
 cd backend
-npm start
+node server.js
 ```
 El servidor backend se ejecutará en `http://localhost:5000`
 
-### 2. Iniciar el Frontend
+#### 2. Iniciar el Frontend
 ```bash
 cd frontend/bustrack-frontend
 npm start
 ```
 La aplicación frontend se ejecutará en `http://localhost:3000`
+
+**Nota:** Asegúrate de que el backend esté ejecutándose antes de iniciar el frontend para evitar errores de conexión.
 
 ## Credenciales de Acceso
 
