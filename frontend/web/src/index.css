@@ -462,6 +462,55 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0000000d;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #0000004d padding-box content-box;
+    border: 2px solid #0000;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00000080 padding-box content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: #0009 padding-box content-box;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: #ffffff0d;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #ffffff4d padding-box content-box;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #ffffff80 padding-box content-box;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:active {
+    background: #fff9 padding-box content-box;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #0000004d #0000000d;
+  }
+
+  .dark * {
+    scrollbar-color: #ffffff4d #ffffff0d;
+  }
 }
 
 @layer utilities {
@@ -829,6 +878,10 @@
 
   .max-h-\(--radix-select-content-available-height\) {
     max-height: var(--radix-select-content-available-height);
+  }
+
+  .min-h-0 {
+    min-height: calc(var(--spacing) * 0);
   }
 
   .min-h-16 {
@@ -1984,6 +2037,18 @@
   @media (hover: hover) {
     .hover\:bg-gray-100:hover {
       background-color: var(--color-gray-100);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-muted-foreground\/30:hover {
+      background-color: var(--muted-foreground);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-muted-foreground\/30:hover {
+        background-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+      }
     }
   }
 

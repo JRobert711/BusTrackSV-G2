@@ -180,8 +180,8 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
           />
         )}
 
-        {/* Messages panel - Only for admin */}
-        {messagesOpen && user.role === 'admin' && (
+        {/* Messages panel - Available for all users */}
+        {messagesOpen && (
           <MessagesPanel
             user={user}
             onClose={() => setMessagesOpen(false)}
