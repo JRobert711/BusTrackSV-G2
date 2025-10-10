@@ -17,7 +17,7 @@ BusTrack SV es una aplicación web moderna para el seguimiento y gestión de flo
 - React 18
 - Tailwind CSS
 - Lucide React (iconos)
-- Radix UI (componentes)
+- Radix UI (componenetes)
 
 ### Backend
 - Node.js
