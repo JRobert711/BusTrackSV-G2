@@ -130,9 +130,9 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Bus className="h-5 w-5 text-blue-600" />
@@ -164,8 +164,8 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-3">
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-3 pb-6">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
             <span>Total de buses: {buses.length}</span>
           </div>

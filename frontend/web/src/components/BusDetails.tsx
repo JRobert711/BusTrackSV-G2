@@ -116,7 +116,7 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-6">
         {/* Current Status */}
         <Card className="p-4">
           <h3 className="font-semibold mb-3">Estado Actual</h3>

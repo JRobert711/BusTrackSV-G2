@@ -59,21 +59,14 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
 
         {/* Right side - User actions */}
         <div className="flex items-center gap-4">
-          {/* Messages - Only for admin */}
-          {user.role === 'admin' && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="relative"
-              onClick={onOpenMessages}
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-            </Button>
-          )}
-
-          {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
+          {/* Notifications and Messages */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="relative"
+            onClick={onOpenMessages}
+            title="Mensajes y Notificaciones"
+          >
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </Button>

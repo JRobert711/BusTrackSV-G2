@@ -171,9 +171,9 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
   );
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-blue-600" />
@@ -197,8 +197,8 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
       </div>
 
       {/* Content */}
-      <Tabs defaultValue="all" className="flex-1 flex flex-col">
-        <div className="px-4 pt-3 border-b">
+      <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
+        <div className="px-4 pt-3 border-b flex-shrink-0">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="notification">
@@ -213,8 +213,8 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
           </TabsList>
         </div>
 
-        <ScrollArea className="flex-1">
-          <TabsContent value="all" className="p-4 space-y-3 mt-0">
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <TabsContent value="all" className="p-4 space-y-3 mt-0 pb-6">
             {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -227,19 +227,19 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="notification" className="p-4 space-y-3 mt-0">
+          <TabsContent value="notification" className="p-4 space-y-3 mt-0 pb-6">
             {filterByType('notification').map(message => (
               <MessageItem key={message.id} message={message} />
             ))}
           </TabsContent>
 
-          <TabsContent value="warning" className="p-4 space-y-3 mt-0">
+          <TabsContent value="warning" className="p-4 space-y-3 mt-0 pb-6">
             {filterByType('warning').map(message => (
               <MessageItem key={message.id} message={message} />
             ))}
           </TabsContent>
 
-          <TabsContent value="message" className="p-4 space-y-3 mt-0">
+          <TabsContent value="message" className="p-4 space-y-3 mt-0 pb-6">
             {filterByType('message').map(message => (
               <MessageItem key={message.id} message={message} />
             ))}
@@ -249,7 +249,7 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
 
       {/* Footer info for admin */}
       {user.role === 'admin' && (
-        <div className="p-4 border-t bg-blue-50">
+        <div className="p-4 border-t bg-blue-50 flex-shrink-0">
           <p className="text-sm text-blue-800">
             <strong>Vista de administrador:</strong> Puedes ver todos los mensajes y acciones del equipo de supervisión.
           </p>
