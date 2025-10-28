@@ -14,7 +14,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'supervisor';
+  role: 'admin' | 'operator';
   avatar?: string;
   department: string;
   phone: string;
@@ -36,7 +36,7 @@ const mockUsers: Record<string, User> = {
     id: '2',
     email: 'supervisor@bustrack.com',
     name: 'María Supervisora',
-    role: 'supervisor',
+    role: 'operator',
     department: 'Operaciones',
     phone: '+506 8888-0002',
     joinDate: '2021-03-20'
@@ -173,7 +173,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    //En el codigo original no se le da un valor booleano a checked por lo que tomaba el valor de checked como un string
+                    onCheckedChange={(checked: boolean) => setRememberMe(checked as boolean)}
                   />
                   <label
                     htmlFor="remember"

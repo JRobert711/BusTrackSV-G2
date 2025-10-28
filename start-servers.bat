@@ -3,13 +3,18 @@ echo Iniciando BusTrack SV...
 echo.
 
 echo Iniciando Backend Server...
-start "Backend Server" cmd /k "cd backend && node server.js"
+::No da errores pero node server.js solo ejecuta el backend con lo que ya tiene, si se quiere 
+::que el backend se este reiniciando con los cambios que se hagan en ejecucion se debe usar npm run dev
+::Codigo original: start "Backend Server" cmd /k "cd backend && node server.js"
+start "Backend Server" cmd /k "cd backend && npm run dev"
 
 echo Esperando 3 segundos para que el backend se inicie...
 timeout /t 3 /nobreak > nul
 
 echo Iniciando Frontend Server...
-start "Frontend Server" cmd /k "cd frontend/bustrack-frontend && npm start"
+::Error de URL no encuentra la ruta por que ya no existe xd, ademas el npm start no funciona
+::Codigo original: start "Frontend Server" cmd /k "cd frontend/bustrack-frontend && npm start"
+start "Frontend Server" cmd /k "cd frontend/web && npm run dev"
 
 echo.
 echo Ambos servidores se han iniciado:
