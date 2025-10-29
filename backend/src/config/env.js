@@ -1,5 +1,5 @@
-// No usamos dotenv para mantener cero dependencias nuevas.
-// Lee variables del entorno y ofrece defaults seguros para dev.
+// Carga variables desde .env si existe y desde el entorno del sistema.
+require('dotenv').config();
 
 module.exports = {
   NODE_ENV: process.env.NODE_ENV || 'development',
