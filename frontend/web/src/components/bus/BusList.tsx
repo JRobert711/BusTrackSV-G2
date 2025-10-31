@@ -2,21 +2,21 @@ import React, { useState } from "react";
 import {
   Search,
   Filter,
-  Star,
+  Pin,
   Bus as BusIcon,
 } from "lucide-react";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import { BusCard } from "./BusCard";
-import { ScrollArea } from "./ui/scroll-area";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface Bus {
   id: string;
@@ -110,7 +110,7 @@ export function BusList({
           <Input
             placeholder="Buscar por placa, ruta o conductor..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -119,7 +119,7 @@ export function BusList({
         <div className="flex gap-2 mb-3">
           <Select
             value={statusFilter}
-            onValueChange={setStatusFilter}
+            onValueChange={(value: string) => setStatusFilter(value)}
           >
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Estado" />
@@ -141,12 +141,15 @@ export function BusList({
           <Button
             variant={showFavoritesOnly ? "default" : "outline"}
             size="sm"
-            onClick={() =>
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
               setShowFavoritesOnly(!showFavoritesOnly)
-            }
+            }}
             className="px-3"
+            title="Pinneados"
+          
           >
-            <Star
+            <Pin
               className={`h-4 w-4 ${showFavoritesOnly ? "fill-current" : ""}`}
             />
           </Button>
@@ -162,7 +165,7 @@ export function BusList({
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">
-              Favoritos:
+              Pinneados:
             </span>
             <Badge variant="secondary">
               {counts.favorites}
