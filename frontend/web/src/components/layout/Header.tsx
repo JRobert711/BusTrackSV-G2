@@ -1,7 +1,7 @@
 import React from 'react';
-import { Bell, Settings, LogOut, User, ChevronDown, Bus, MessageSquare } from 'lucide-react';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Bell, Settings, LogOut, User, ChevronDown, Bus, MessageSquare, Users } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,9 +9,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import type { User as UserType } from './LoginPage';
+} from '../ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import type { User as UserType } from '../../pages/LoginPage';
 
 interface HeaderProps {
   user: UserType;
@@ -19,9 +19,10 @@ interface HeaderProps {
   onLogout: () => void;
   onOpenMessages?: () => void;
   onOpenFleetManagement?: () => void;
+  onOpenUserManagement?: () => void;
 }
 
-export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleetManagement }: HeaderProps) {
+export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleetManagement, onOpenUserManagement }: HeaderProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -73,13 +74,24 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
 
           {/* Fleet Management - Only for admin */}
           {user.role === 'admin' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onOpenFleetManagement}
-            >
-              <Bus className="h-5 w-5" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenFleetManagement}
+                title="Gestión de Flota"
+              >
+                <Bus className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenUserManagement}
+                title="Gestión de Supervisores y Conductores"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+            </>
           )}
 
           {/* User menu */}
