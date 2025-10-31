@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Route, User, AlertTriangle, MessageSquare, Bell, Wrench } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from './ui/alert-dialog';
+} from '../ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -18,13 +18,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from '';
-import { Separator } from './ui/separator';
+} from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { toast } from 'sonner';
+import { Separator } from '../ui/separator';
 
 interface Bus {
   id: string;
@@ -455,7 +455,7 @@ export function AdminActions({
             </div>
             <div className="space-y-2">
               <Label>Nuevo Estado</Label>
-              <Select value={newStatus} onValueChange={(value) => setNewStatus(value as Bus['status'])}>
+              <Select value={newStatus} onValueChange={(value: string) => setNewStatus(value as Bus['status'])}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

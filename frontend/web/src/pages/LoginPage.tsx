@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Bus, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card } from './ui/card';
-import { Checkbox } from './ui/checkbox';
+import { Button } from '../components//ui/button';
+import { Input } from '../components//ui/input';
+import { Label } from '../components//ui/label';
+import { Card } from '../components//ui/card';
+import { Checkbox } from '../components//ui/checkbox';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
+  onGoToRegister: () => void;
 }
 
 export interface User {
@@ -43,7 +44,7 @@ const mockUsers: Record<string, User> = {
   }
 };
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -197,6 +198,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 Iniciar Sesión
               </Button>
             </form>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onGoToRegister}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                ¿No tienes cuenta? Regístrate
+              </button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
