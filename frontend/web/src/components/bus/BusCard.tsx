@@ -1,8 +1,8 @@
 import React from 'react';
-import { Bus, Clock, MapPin, User, Star, Route } from 'lucide-react';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { Bus, Clock, MapPin, User, Pin, Route } from 'lucide-react';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 
 interface Bus {
   id: string;
@@ -73,15 +73,16 @@ export function BusCard({ bus, isSelected, onSelect, onToggleFavorite }: BusCard
         <Button
           variant="ghost"
           size="sm"
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
             onToggleFavorite();
           }}
           className="p-1 h-auto"
+          title={bus.isFavorite ? 'Despinnear' : 'Pinnear'}
         >
-          <Star 
+          <Pin 
             className={`h-4 w-4 ${
-              bus.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
+              bus.isFavorite ? 'fill-blue-600 text-blue-600' : 'text-gray-400'
             }`}
           />
         </Button>
@@ -102,17 +103,10 @@ export function BusCard({ bus, isSelected, onSelect, onToggleFavorite }: BusCard
           <span>{bus.driver}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <div className="flex items-center gap-1 text-sm">
-            <Clock className="h-3 w-3 text-green-600" />
-            <span className="text-muted-foreground">En mov:</span>
-            <span className="font-medium">{formatTime(bus.movingTime)}</span>
-          </div>
-          <div className="flex items-center gap-1 text-sm">
-            <Clock className="h-3 w-3 text-yellow-600" />
-            <span className="text-muted-foreground">Parado:</span>
-            <span className="font-medium">{formatTime(bus.parkedTime)}</span>
-          </div>
+        <div className="flex items-center gap-1 text-sm pt-2">
+          <Clock className="h-3 w-3 text-green-600" />
+          <span className="text-muted-foreground">En mov:</span>
+          <span className="font-medium">{formatTime(bus.movingTime)}</span>
         </div>
       </div>
     </Card>

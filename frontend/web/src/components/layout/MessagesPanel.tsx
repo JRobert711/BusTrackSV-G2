@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { MessageSquare, Bell, AlertTriangle, X, User, Clock } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
-import type { User as UserType } from './LoginPage';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { ScrollArea } from '../ui/scroll-area';
+import { Separator } from '../ui/separator';
+import type { User as UserType } from '../../pages/LoginPage';
 
 interface Message {
   id: string;
