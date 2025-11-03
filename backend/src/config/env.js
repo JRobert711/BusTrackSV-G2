@@ -1,24 +1,12 @@
-/**
- * Environment Configuration
- *
- * Reads environment variables and exports a frozen config object.
- * Organized by sections: env, port, jwt, cors, firebase, gps
- */
-
+// Carga variables desde .env si existe y desde el entorno del sistema.
 require('dotenv').config();
 
-// Helper to parse comma-separated values
-const parseCSV = (value, fallback = []) => {
-  if (!value) {
-    return fallback;
-  }
-  return value.split(',').map(item => item.trim()).filter(Boolean);
-};
-
-// Helper to parse integer with fallback
-const parseInt = (value, fallback) => {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
+module.exports = {
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  PORT: process.env.PORT || 5000,
+  JWT_SECRET: process.env.JWT_SECRET || 'bustrack_secret_key_2024',
+  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
 };
 
 // Build configuration object
