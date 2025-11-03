@@ -12,7 +12,8 @@
     "dev": "nodemon src/server.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
-    "test": "echo \"Error: no test implemented yet\" && exit 0"
+    "test": "node tests/manual-test.js",
+    "test:watch": "nodemon tests/manual-test.js"
   },
   "keywords": [
     "bustrack",
