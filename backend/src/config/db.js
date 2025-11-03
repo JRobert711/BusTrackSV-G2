@@ -9,6 +9,7 @@
  */
 
 const admin = require('firebase-admin');
+const path = require('path');
 const config = require('./env');
 
 /**
@@ -37,8 +38,11 @@ function initializeFirebase() {
   } else if (GOOGLE_APPLICATION_CREDENTIALS) {
     // Method 2: Path to service account JSON file (useful for local development)
     try {
+      // Resolve path relative to backend directory (2 levels up from src/config)
+      const backendRoot = path.resolve(__dirname, '../..');
+      const credentialsPath = path.resolve(backendRoot, GOOGLE_APPLICATION_CREDENTIALS);
       // eslint-disable-next-line global-require
-      serviceAccount = require(GOOGLE_APPLICATION_CREDENTIALS);
+      serviceAccount = require(credentialsPath);
       console.log(`✓ Firebase credentials loaded from ${GOOGLE_APPLICATION_CREDENTIALS}`);
     } catch (error) {
       console.error(`✗ Failed to load Firebase credentials from ${GOOGLE_APPLICATION_CREDENTIALS}:`, error.message);
