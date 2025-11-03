@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bus, MapPin, Navigation } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { Bus, MapPin, Pin } from 'lucide-react';
+import { Badge } from '../ui/badge';
 
 interface Bus {
   id: string;
@@ -107,8 +107,8 @@ export function MapView({ buses, selectedBus, onBusSelect }: MapViewProps) {
               <Bus className="h-4 w-4 text-white" />
             </div>
             {bus.isFavorite && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border border-white flex items-center justify-center">
-                <span className="text-xs">★</span>
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+                <Pin className="h-3 w-3 text-white" fill="white" />
               </div>
             )}
             {selectedBus === bus.id && (
@@ -144,16 +144,7 @@ export function MapView({ buses, selectedBus, onBusSelect }: MapViewProps) {
         </div>
       )}
 
-      {/* Navigation Controls */}
-      <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-md p-2">
-        <div className="flex flex-col gap-2">
-          <button className="p-2 hover:bg-gray-100 rounded">
-            <Navigation className="h-4 w-4" />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded">+</button>
-          <button className="p-2 hover:bg-gray-100 rounded">-</button>
-        </div>
-      </div>
+
     </div>
   );
 }
