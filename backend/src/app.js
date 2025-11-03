@@ -29,12 +29,23 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/ready', (req, res) => {
+  // In a real application, check database connectivity,
+  // external service availability, etc.
+  res.json({
+    status: 'ready',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ============================================
 // API Routes
 // ============================================
 const authRoutes = require('./routes/authRoutes');
+const busRoutes = require('./routes/busRoutes');
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/buses', busRoutes);
 
 // ============================================
 // 404 Handler

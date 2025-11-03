@@ -184,12 +184,65 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
+## 📖 API Documentation
+
+This project includes a complete OpenAPI 3.1 specification.
+
+### OpenAPI Spec
+
+**File**: `openapi.yaml`
+
+The specification documents all endpoints with:
+- Request/response schemas
+- Authentication requirements
+- Validation rules
+- Error responses
+- Example requests and responses
+
+### Viewing Documentation
+
+**Option 1: Swagger Editor (Online)**
+1. Go to [Swagger Editor](https://editor.swagger.io/)
+2. File → Import file → Select `openapi.yaml`
+3. View formatted documentation
+
+**Option 2: Local Swagger UI**
+```bash
+npm install swagger-ui-express yamljs
+```
+
+Then visit: http://localhost:5000/api-docs (when implemented)
+
+### API Endpoints
+
+**Authentication** (`/api/v1/auth`)
+- `POST /register` - Register new user
+- `POST /login` - Authenticate user
+- `POST /refresh` - Refresh access token
+- `GET /me` - Get current user profile (requires auth)
+
+**Buses** (`/api/v1/buses`)
+- `GET /buses` - List buses (paginated, with filters)
+- `GET /buses/:id` - Get single bus
+- `POST /buses` - Create bus (admin only)
+- `PATCH /buses/:id` - Update bus (admin only)
+- `PATCH /buses/:id/favorite` - Toggle favorite (authenticated)
+- `DELETE /buses/:id` - Delete bus (admin only)
+- `PATCH /buses/:id/position` - Update GPS position (admin only)
+
+**Health Checks**
+- `GET /health` - Service health status
+- `GET /ready` - Service readiness status
+
+For detailed documentation, see [`OPENAPI.md`](./OPENAPI.md)
+
 ## 📚 Additional Resources
 
 - [Express.js Documentation](https://expressjs.com/)
 - [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
 - [JWT.io](https://jwt.io/)
 - [Joi Validation](https://joi.dev/api/)
+- [OpenAPI 3.1 Specification](https://spec.openapis.org/oas/v3.1.0)
 
 ## 👥 Contributing
 
