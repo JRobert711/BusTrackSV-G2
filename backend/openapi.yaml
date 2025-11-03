@@ -27,6 +27,8 @@ tags:
     description: User authentication and authorization
   - name: Buses
     description: Bus management operations
+  - name: GPS
+    description: GPS data ingestion (reserved for future implementation)
   - name: Health
     description: Service health and readiness checks
 
@@ -682,6 +684,67 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
+  /gps/ingest:
+    post:
+      tags:
+        - GPS
+      summary: Ingest GPS data from device (Reserved - Not Implemented)
+      description: |
+        **🚧 RESERVED FOR FUTURE IMPLEMENTATION**
+        
+        This endpoint is reserved for GPS data ingestion from tracking devices.
+        Currently returns 501 Not Implemented.
+        
+        **Planned Features:**
+        - Deduplication by deviceId + timestamp
+        - Per-device rate limiting (~1 Hz)
+        - Data retention: 30 days (Firestore TTL with expiresAt field)
+        - Real-time position updates for buses
+        
+        **Implementation Status:** Not yet implemented (returns 501)
+      operationId: ingestGPSData
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GPSDataInput'
+            example:
+              busId: bus123
+              deviceId: device-001
+              timestamp: '2024-01-01T12:30:45.123Z'
+              lat: 13.6929
+              lng: -89.2182
+              speed: 45.5
+              heading: 180
+              accuracy: 5.2
+      responses:
+        '501':
+          description: Not Implemented - This endpoint is reserved for future implementation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  type:
+                    type: string
+                  message:
+                    type: string
+              example:
+                error: Not Implemented
+                type: NOT_IMPLEMENTED
+                message: GPS ingestion endpoint is reserved for future implementation
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1062,6 +1125,72 @@ components:
           details:
             email: Email must be a valid email address
             password: Password must be at least 8 characters long
+
+    GPSDataInput:
+      type: object
+      description: GPS data payload from tracking device
+      required:
+        - busId
+        - deviceId
+        - timestamp
+        - lat
+        - lng
+      properties:
+        busId:
+          type: string
+          description: Bus identifier
+          example: bus123
+        deviceId:
+          type: string
+          description: Unique device identifier (used for deduplication)
+          example: device-001
+        timestamp:
+          type: string
+          format: date-time
+          description: GPS reading timestamp (ISO 8601)
+          example: '2024-01-01T12:30:45.123Z'
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Latitude coordinate
+          example: 13.6929
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: Longitude coordinate
+          example: -89.2182
+        speed:
+          type: number
+          format: double
+          minimum: 0
+          description: Speed in km/h (optional)
+          example: 45.5
+        heading:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 360
+          description: Heading in degrees (0-360, optional)
+          example: 180
+        accuracy:
+          type: number
+          format: double
+          minimum: 0
+          description: GPS accuracy in meters (optional)
+          example: 5.2
+      example:
+        busId: bus123
+        deviceId: device-001
+        timestamp: '2024-01-01T12:30:45.123Z'
+        lat: 13.6929
+        lng: -89.2182
+        speed: 45.5
+        heading: 180
+        accuracy: 5.2
 
   responses:
     UnauthorizedError:

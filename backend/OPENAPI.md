@@ -26,6 +26,9 @@ The specification documents:
   - DELETE `/buses/{id}` - Delete bus (admin only)
   - PATCH `/buses/{id}/position` - Update GPS position (admin only)
 
+- **GPS** (`/gps/*`) - **RESERVED FOR FUTURE IMPLEMENTATION**
+  - POST `/gps/ingest` - Ingest GPS data from devices (returns 501)
+
 - **Health** (`/health`, `/ready`)
   - GET `/health` - Service health check
   - GET `/ready` - Service readiness check
@@ -38,6 +41,7 @@ The specification documents:
 - `BusInput` - Bus creation payload
 - `BusUpdate` - Bus update payload (all fields optional)
 - `Position` - GPS coordinates (lat, lng)
+- `GPSDataInput` - GPS data payload from tracking device (reserved)
 - `Pagination` - Pagination metadata
 - `AuthResponse` - Login/register response
 - `ErrorResponse` - Standard error format
