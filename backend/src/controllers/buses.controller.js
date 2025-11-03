@@ -8,7 +8,9 @@ async function toggleFavorite(req, res) {
   const { id } = req.params;
   const { isFavorite } = req.body || {};
   const updated = setFavorite(id, isFavorite);
-  if (!updated) return res.status(404).json({ message: 'Bus no encontrado' });
+  if (!updated) {
+    return res.status(404).json({ message: 'Bus no encontrado' });
+  }
   return res.json(updated);
 }
 

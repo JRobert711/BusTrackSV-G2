@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 frontend/web/node_modules/
 
@@ -18,7 +18,13 @@ Thumbs.db
 
 # Env files
 .env
-.env.*
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+# But keep .env.example
+!.env.example
 
 # Editor
 .vscode/
