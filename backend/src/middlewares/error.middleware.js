@@ -3,7 +3,9 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
   const message = err.message || 'Error interno del servidor';
   const details = err.details;
   const payload = { message };
-  if (details) payload.details = details;
+  if (details) {
+    payload.details = details;
+  }
   res.status(status).json(payload);
 }
 

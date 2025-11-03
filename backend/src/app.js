@@ -1,25 +1,60 @@
 const express = require('express');
 const cors = require('cors');
 
-const apiRouter = require('./routes');
-const healthRoutes = require('./routes/health.routes');
-const { notFound } = require('./middlewares/notFound.middleware');
-const { errorHandler } = require('./middlewares/error.middleware');
-
 const app = express();
 
-// Core middlewares
+// ============================================
+// Middlewares
+// ============================================
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Public health endpoints (no versioned) to keep root working
-app.use('/', healthRoutes);
+// ============================================
+// Health Check Route
+// ============================================
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'BusTrack SV API is running',
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Versioned API
-app.use('/api/v1', apiRouter);
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'bustrack-sv-backend',
+    version: '1.0.0'
+  });
+});
 
-// 404 and error handlers
-app.use(notFound);
-app.use(errorHandler);
+// ============================================
+// API Routes (will be added later)
+// ============================================
+// app.use('/api/v1', apiRouter);
+
+// ============================================
+// 404 Handler
+// ============================================
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} not found`,
+    path: req.path
+  });
+});
+
+// ============================================
+// Global Error Handler
+// ============================================
+app.use((err, req, res, _next) => {
+  console.error('Error:', err);
+
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
 
 module.exports = app;
