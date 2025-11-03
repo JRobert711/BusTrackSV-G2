@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./backend
+        run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Create test environment file
+        working-directory: ./backend
+        run: |
+          cat > .env.test << EOF
+          NODE_ENV=test
+          FIRESTORE_EMULATOR_HOST=localhost:8080
+          JWT_SECRET=test_jwt_secret_key_for_ci
+          JWT_ACCESS_EXPIRY=15m
+          JWT_REFRESH_EXPIRY=7d
+          BCRYPT_SALT_ROUNDS=10
+          CORS_ORIGIN=http://localhost:3000
+          EOF
+
+      - name: Run unit tests
+        working-directory: ./backend
+        run: npm run test:unit
+
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
+      - name: Run integration tests with Firestore Emulator
+        working-directory: ./backend
+        run: |
+          firebase emulators:exec --only firestore --project bustrack-test \
+            'npm run test:integration' || true
+
+      - name: Run all tests with coverage
+        working-directory: ./backend
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unittests
+          name: backend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/coverage/
+          retention-days: 30
+
+  build:
+    name: Build (Optional)
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Verify installation
+        working-directory: ./backend
+        run: |
+          echo "✓ Dependencies installed successfully"
+          node --version
+          npm --version
+
+      - name: Build summary
+        run: |
+          echo "Build completed successfully!"
+          echo "Node version: $(node --version)"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"

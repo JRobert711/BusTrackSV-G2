@@ -5,21 +5,19 @@ const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const { swaggerSpec } = require('./config/swagger');
 
-const apiRouter = require('./routes');
-const healthRoutes = require('./routes/health.routes');
-const { notFound } = require('./middlewares/notFound.middleware');
-const { errorHandler } = require('./middlewares/error.middleware');
-
 const app = express();
 
 // Core middlewares
 app.use(helmet());
 app.use(cors());
+
+// 2. Body Parsers - Parse JSON and URL-encoded bodies
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Public health endpoints (no versioned) to keep root working
-app.use('/', healthRoutes);
+  // Update response
+  response.error = message;
+  response.type = errorType;
 
 // API Docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -27,8 +25,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Versioned API
 app.use('/api/v1', apiRouter);
 
-// 404 and error handlers
-app.use(notFound);
-app.use(errorHandler);
+  res.status(status).json(response);
+});
 
 module.exports = app;

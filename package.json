@@ -1,0 +1,41 @@
+{
+  "name": "bustrack-sv",
+  "version": "2.0.0",
+  "description": "Sistema de Seguimiento de Flota de Buses - BusTrack SV",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend/web"
+  ],
+  "scripts": {
+    "start": "concurrently -k -n backend,frontend -c green,blue \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm run dev",
+    "start:frontend": "cd frontend/web && npm run dev",
+    "start:backend:prod": "cd backend && npm start",
+    "start:frontend:prod": "cd frontend/web && npm run build && npm run preview",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend/web && npm install",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend/web && npm install",
+    "test": "echo \"✅ No hay tests configurados aún. Ejecuta los servidores con: npm start\"",
+    "build": "cd backend && npm run build && cd ../frontend/web && npm run build",
+    "clean": "rimraf node_modules backend/node_modules frontend/web/node_modules"
+  },
+  "keywords": [
+    "bustrack",
+    "bus",
+    "tracking",
+    "flota",
+    "react",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "rimraf": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

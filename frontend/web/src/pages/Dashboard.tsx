@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { MapView } from './MapView';
-import { BusList } from './BusList';
-import { BusDetails } from './BusDetails';
-import { Header } from './Header';
-import { MessagesPanel } from './MessagesPanel';
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapView } from '../components/map/MapView';
+import { BusList } from '../components/bus/BusList';
+import { BusDetails } from '../components/bus/BusDetails';
+import { Header } from '../components/layout//Header';
+import { MessagesPanel } from '../components/layout/MessagesPanel';
 import { FleetManagement } from './FleetManagement';
+import { UserManagement } from './UserManagement';
 import type { User } from './LoginPage';
 
 interface Bus {
@@ -60,6 +61,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [detailsBus, setDetailsBus] = useState<string | null>(null);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [fleetManagementOpen, setFleetManagementOpen] = useState(false);
+  const [userManagementOpen, setUserManagementOpen] = useState(false);
 
   // Simulate real-time updates
   useEffect(() => {
@@ -129,7 +131,20 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
     setBuses(prevBuses => [...prevBuses, newBus]);
   };
 
-  const selectedBusData = detailsBus ? buses.find(bus => bus.id === detailsBus) : null;
+  const selectedBusData = detailsBus ? (buses.find(bus => bus.id === detailsBus) ?? null) : null;
+
+  // Narrow statuses for FleetManagement prop expectations ('moving' | 'parked' | 'maintenance')
+  const fleetBuses = useMemo(() =>
+    buses.map(b => ({
+      ...b,
+      status: (b.status === 'needs_urgent_maintenance'
+        ? 'maintenance'
+        : b.status === 'usable'
+          ? 'parked'
+          : b.status) as 'moving' | 'parked' | 'maintenance',
+    })),
+    [buses]
+  );
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -141,10 +156,18 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
         onOpenMessages={() => {
           setMessagesOpen(true);
           setFleetManagementOpen(false);
+          setUserManagementOpen(false);
         }}
         onOpenFleetManagement={() => {
           setFleetManagementOpen(true);
           setMessagesOpen(false);
+          setUserManagementOpen(false);
+          setDetailsBus(null);
+        }}
+        onOpenUserManagement={() => {
+          setUserManagementOpen(true);
+          setMessagesOpen(false);
+          setFleetManagementOpen(false);
           setDetailsBus(null);
         }}
       />
@@ -169,7 +192,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
         </div>
 
         {/* Details panel */}
-        {detailsBus && !messagesOpen && !fleetManagementOpen && (
+        {detailsBus && !messagesOpen && !fleetManagementOpen && !userManagementOpen && (
           <BusDetails
             bus={selectedBusData}
             user={user}
@@ -192,10 +215,18 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
         {fleetManagementOpen && user.role === 'admin' && (
           <FleetManagement
             user={user}
-            buses={buses}
+            buses={fleetBuses}
             onClose={() => setFleetManagementOpen(false)}
             onAddBus={handleAddBus}
             onDeleteBus={handleDeleteBus}
+          />
+        )}
+
+        {/* User Management panel - Only for admin */}
+        {userManagementOpen && user.role === 'admin' && (
+          <UserManagement
+            user={user}
+            onClose={() => setUserManagementOpen(false)}
           />
         )}
       </div>

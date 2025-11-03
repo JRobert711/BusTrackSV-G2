@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { LoginPage, type User } from './components/LoginPage';
-import { Dashboard } from './components/Dashboard';
-import { UserProfile } from './components/UserProfile';
-import { Settings } from './components/Settings';
+import { LoginPage, type User } from './pages/LoginPage';
+import { RegisterPage, type RegisterData } from './pages/RegisterPage';
+import { Dashboard } from './pages/Dashboard';
+import { UserProfile } from './pages/UserProfile';
+import { Settings } from './pages/Settings';
 import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
 
-type View = 'login' | 'dashboard' | 'profile' | 'settings';
+type View = 'login' | 'register' | 'dashboard' | 'profile' | 'settings';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('login');
@@ -32,6 +34,14 @@ export default function App() {
     localStorage.setItem('bustrack_user', JSON.stringify(user));
   };
 
+  const handleRegister = (userData: RegisterData) => {
+    // In a real app, this would send data to backend
+    toast.success('Cuenta creada exitosamente', {
+      description: 'Tu cuenta ha sido creada. Por favor inicia sesión.'
+    });
+    setCurrentView('login');
+  };
+
   const handleLogout = () => {
     setCurrentUser(null);
     setCurrentView('login');
@@ -47,11 +57,26 @@ export default function App() {
     localStorage.setItem('bustrack_user', JSON.stringify(updatedUser));
   };
 
-  // Show login if no user
-  if (!currentUser || currentView === 'login') {
+  // Show login/register if no user
+  if (!currentUser) {
+    if (currentView === 'register') {
+      return (
+        <>
+          <RegisterPage 
+            onBackToLogin={() => setCurrentView('login')} 
+            onRegister={handleRegister}
+          />
+          <Toaster />
+        </>
+      );
+    }
+    
     return (
       <>
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage 
+          onLogin={handleLogin} 
+          onGoToRegister={() => setCurrentView('register')}
+        />
         <Toaster />
       </>
     );

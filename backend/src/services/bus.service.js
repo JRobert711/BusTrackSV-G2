@@ -11,7 +11,7 @@ const buses = [
   { id: '009', licensePlate: 'BUS-009', unitName: 'Unidad 009', status: 'parked', route: '101', driver: 'Miguel Castillo', movingTime: 220, parkedTime: 95, isFavorite: false },
   { id: '010', licensePlate: 'BUS-010', unitName: 'Unidad 010', status: 'parked', route: '102', driver: 'Laura Morales', movingTime: 160, parkedTime: 140, isFavorite: false },
   { id: '011', licensePlate: 'BUS-011', unitName: 'Unidad 011', status: 'parked', route: '201', driver: 'Fernando Vega', movingTime: 190, parkedTime: 110, isFavorite: false },
-  { id: '012', licensePlate: 'BUS-012', unitName: 'Unidad 012', status: 'parked', route: '205', driver: 'Sofía Ramírez', movingTime: 170, parkedTime: 130, isFavorite: false },
+  { id: '012', licensePlate: 'BUS-012', unitName: 'Unidad 012', status: 'parked', route: '205', driver: 'Sofía Ramírez', movingTime: 170, parkedTime: 130, isFavorite: false }
 ];
 
 function listBuses() {
@@ -20,7 +20,9 @@ function listBuses() {
 
 function setFavorite(id, isFavorite) {
   const idx = buses.findIndex(b => b.id === id);
-  if (idx === -1) return null;
+  if (idx === -1) {
+    return null;
+  }
   buses[idx].isFavorite = !!isFavorite;
   return buses[idx];
 }
