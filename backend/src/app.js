@@ -4,14 +4,20 @@ const cors = require('cors');
 const app = express();
 
 // ============================================
-// Middlewares
+// Global Middlewares (Order Matters!)
 // ============================================
+// 1. CORS - Allow cross-origin requests
 app.use(cors());
+
+// 2. Body Parsers - Parse JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Note: Rate limiting is applied at route level (see authRoutes, busRoutes)
+// This allows different limits per endpoint
+
 // ============================================
-// Health Check Route
+// Health Check Routes (No auth required)
 // ============================================
 app.get('/', (req, res) => {
   res.json({
@@ -39,22 +45,34 @@ app.get('/ready', (req, res) => {
 });
 
 // ============================================
-// API Routes
+// API Routes (v1)
 // ============================================
+// Mount all route handlers under /api/v1 prefix
+// Each route file applies its own:
+// - Rate limiting (per endpoint)
+// - Authentication middleware (where needed)
+// - Validation middleware (Joi schemas)
+
 const authRoutes = require('./routes/authRoutes');
 const busRoutes = require('./routes/busRoutes');
+const gpsRoutes = require('./routes/gps.routes');
 
+// Authentication & Authorization
 app.use('/api/v1/auth', authRoutes);
+
+// Bus Management (CRUD + favorites + position)
 app.use('/api/v1/buses', busRoutes);
 
+// GPS Data Ingestion (Reserved - returns 501 Not Implemented)
+app.use('/api/v1/gps', gpsRoutes);
+
 // ============================================
-// 404 Handler
+// 404 Handler (Must come after all routes)
 // ============================================
 app.use((req, res) => {
   res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`,
-    path: req.path
+    error: `Route ${req.method} ${req.path} not found`,
+    type: 'NOT_FOUND'
   });
 });
 
