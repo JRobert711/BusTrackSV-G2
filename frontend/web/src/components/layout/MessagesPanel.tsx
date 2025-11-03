@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { MessageSquare, Bell, AlertTriangle, X, User, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, AlertTriangle, X, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
 import type { User as UserType } from '../../pages/LoginPage';
+import { api, type Bus } from '../../services/api';
 
 interface Message {
   id: string;
-  type: 'notification' | 'warning' | 'message';
+  type: 'notification' | 'warning';
   busId: string;
   busPlate: string;
   from: string;
@@ -25,59 +24,91 @@ interface MessagesPanelProps {
   onClose: () => void;
 }
 
-// Mock messages data
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    type: 'warning',
-    busId: '001',
-    busPlate: 'BUS-001',
-    from: 'María Supervisora',
-    fromRole: 'supervisor',
-    content: 'Exceso de velocidad detectado en ruta 101. Conductor notificado.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    read: false
-  },
-  {
-    id: '2',
-    type: 'notification',
-    busId: '003',
-    busPlate: 'BUS-003',
-    from: 'María Supervisora',
-    fromRole: 'supervisor',
-    content: 'Bus requiere mantenimiento preventivo. Programar revisión.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    read: false
-  },
-  {
-    id: '3',
-    type: 'message',
-    busId: '005',
-    busPlate: 'BUS-005',
-    from: 'María Supervisora',
-    fromRole: 'supervisor',
-    content: 'Conductor reporta problema con sistema de frenos. Requiere atención inmediata.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    read: true
-  },
-  {
-    id: '4',
-    type: 'notification',
-    busId: '007',
-    busPlate: 'BUS-007',
-    from: 'Carlos Administrador',
-    fromRole: 'admin',
-    content: 'Ruta modificada para evitar tráfico en centro. Actualización completada.',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    read: true
-  }
-];
+// Generate notifications from bus data
+const generateNotifications = (buses: Bus[], currentUser: UserType): Message[] => {
+  const notifications: Message[] = [];
+  
+  buses.forEach((bus) => {
+    // Notification for maintenance status
+    if (bus.status === 'maintenance') {
+      notifications.push({
+        id: `notification-${bus.id}-maintenance`,
+        type: 'notification',
+        busId: bus.id,
+        busPlate: bus.licensePlate,
+        from: currentUser.name,
+        fromRole: currentUser.role,
+        content: `Bus ${bus.unitName} en mantenimiento. ${bus.driver ? `Conductor: ${bus.driver}` : 'Sin conductor asignado'}.`,
+        timestamp: new Date(bus.updatedAt),
+        read: false
+      });
+    }
+    
+    // Warning for buses parked too long (> 2 hours = 7200 seconds)
+    if (bus.status === 'parked' && bus.parkedTime > 7200) {
+      const hours = Math.floor(bus.parkedTime / 3600);
+      notifications.push({
+        id: `warning-${bus.id}-parked`,
+        type: 'warning',
+        busId: bus.id,
+        busPlate: bus.licensePlate,
+        from: currentUser.name,
+        fromRole: currentUser.role,
+        content: `Bus ${bus.unitName} estacionado por ${hours} horas. Verificar estado.`,
+        timestamp: new Date(bus.updatedAt),
+        read: false
+      });
+    }
+    
+    // Notification for buses without position
+    if (!bus.position && bus.status === 'moving') {
+      notifications.push({
+        id: `notification-${bus.id}-no-position`,
+        type: 'warning',
+        busId: bus.id,
+        busPlate: bus.licensePlate,
+        from: currentUser.name,
+        fromRole: currentUser.role,
+        content: `Bus ${bus.unitName} sin ubicación GPS. Verificar dispositivo.`,
+        timestamp: new Date(bus.updatedAt),
+        read: false
+      });
+    }
+  });
+  
+  // Sort by timestamp (most recent first)
+  return notifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+};
 
 export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
-  
-  const unreadCount = messages.filter(m => !m.read).length;
-  const warningCount = messages.filter(m => m.type === 'warning' && !m.read).length;
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch buses and generate notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        const response = await api.getBuses({ pageSize: 50 });
+        const notifications = generateNotifications(response.data, user);
+        setMessages(notifications);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching notifications:', err);
+        setError(err.error || 'No se pudo conectar al servidor');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
 
   const formatTime = (date: Date) => {
     const now = new Date();
@@ -99,10 +130,8 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
         return <AlertTriangle className="h-4 w-4 text-orange-600" />;
       case 'notification':
         return <Bell className="h-4 w-4 text-blue-600" />;
-      case 'message':
-        return <MessageSquare className="h-4 w-4 text-purple-600" />;
       default:
-        return <MessageSquare className="h-4 w-4" />;
+        return <Bell className="h-4 w-4 text-blue-600" />;
     }
   };
 
@@ -112,8 +141,6 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
         return <Badge className="bg-orange-100 text-orange-800">Amonestación</Badge>;
       case 'notification':
         return <Badge className="bg-blue-100 text-blue-800">Notificación</Badge>;
-      case 'message':
-        return <Badge className="bg-purple-100 text-purple-800">Mensaje</Badge>;
       default:
         return null;
     }
@@ -125,11 +152,6 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
         msg.id === messageId ? { ...msg, read: true } : msg
       )
     );
-  };
-
-  const filterByType = (type?: string) => {
-    if (!type) return messages;
-    return messages.filter(m => m.type === type);
   };
 
   const MessageItem = ({ message }: { message: Message }) => (
@@ -174,87 +196,52 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
     <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
-            <h2 className="font-semibold">Mensajes y Notificaciones</h2>
+            <Bell className="h-5 w-5 text-blue-600" />
+            <h2 className="font-semibold">Notificaciones</h2>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="p-2">
             <X className="h-4 w-4" />
           </Button>
         </div>
-        
-        <div className="flex gap-2">
-          <Badge variant="secondary">
-            {unreadCount} sin leer
-          </Badge>
-          {warningCount > 0 && (
-            <Badge className="bg-orange-100 text-orange-800">
-              {warningCount} amonestaciones
-            </Badge>
-          )}
-        </div>
       </div>
 
       {/* Content */}
-      <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
-        <div className="px-4 pt-3 border-b flex-shrink-0">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="notification">
-              <Bell className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="warning">
-              <AlertTriangle className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="message">
-              <MessageSquare className="h-4 w-4" />
-            </TabsTrigger>
-          </TabsList>
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-3 pb-6">
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Bell className="h-12 w-12 mx-auto mb-2 opacity-50 animate-pulse" />
+              <p>Cargando notificaciones...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+              <p className="font-semibold">Error al cargar notificaciones</p>
+              <p className="text-sm mt-2">{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-4"
+                onClick={() => window.location.reload()}
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No hay notificaciones</p>
+              <p className="text-sm mt-2">Todos los buses operan normalmente</p>
+            </div>
+          ) : (
+            messages.map(message => (
+              <MessageItem key={message.id} message={message} />
+            ))
+          )}
         </div>
-
-        <ScrollArea className="flex-1 overflow-y-auto">
-          <TabsContent value="all" className="p-4 space-y-3 mt-0 pb-6">
-            {messages.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No hay mensajes</p>
-              </div>
-            ) : (
-              messages.map(message => (
-                <MessageItem key={message.id} message={message} />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="notification" className="p-4 space-y-3 mt-0 pb-6">
-            {filterByType('notification').map(message => (
-              <MessageItem key={message.id} message={message} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="warning" className="p-4 space-y-3 mt-0 pb-6">
-            {filterByType('warning').map(message => (
-              <MessageItem key={message.id} message={message} />
-            ))}
-          </TabsContent>
-
-          <TabsContent value="message" className="p-4 space-y-3 mt-0 pb-6">
-            {filterByType('message').map(message => (
-              <MessageItem key={message.id} message={message} />
-            ))}
-          </TabsContent>
-        </ScrollArea>
-      </Tabs>
-
-      {/* Footer info for admin */}
-      {user.role === 'admin' && (
-        <div className="p-4 border-t bg-blue-50 flex-shrink-0">
-          <p className="text-sm text-blue-800">
-            <strong>Vista de administrador:</strong> Puedes ver todos los mensajes y acciones del equipo de supervisión.
-          </p>
-        </div>
-      )}
+      </ScrollArea>
     </div>
   );
 }
