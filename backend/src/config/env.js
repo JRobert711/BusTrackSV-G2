@@ -9,6 +9,17 @@ module.exports = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
 };
 
+/**
+ * Parse comma-separated values into an array
+ * @param {string} value - CSV string
+ * @param {Array} defaultValue - Default value if parsing fails
+ * @returns {Array} Parsed array
+ */
+function parseCSV(value, defaultValue = []) {
+  if (!value) return defaultValue;
+  return value.split(',').map(item => item.trim()).filter(Boolean);
+}
+
 // Build configuration object
 const config = {
   // ============================================
