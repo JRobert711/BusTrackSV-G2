@@ -4,6 +4,62 @@ Reusable Express middlewares for authentication, error handling, and request pro
 
 ## 📁 Available Middlewares
 
+### `validation.js` - Request Validation
+
+**Validation Helpers:**
+- `validate(schema, source)` - Generic validation for any request property
+- `validateBody(schema)` - Validate request body
+- `validateQuery(schema)` - Validate query parameters
+- `validateParams(schema)` - Validate route parameters
+
+**Error Format:**
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request data",
+    "details": {
+      "email": "Email must be a valid email address",
+      "password": "Password must be at least 8 characters long"
+    }
+  }
+}
+```
+
+**Usage:**
+```javascript
+const { validateBody, validateQuery, validateParams } = require('../middlewares/validation');
+const Joi = require('joi');
+
+// Define schemas
+const createUserSchema = Joi.object({
+  email: Joi.string().email().required(),
+  name: Joi.string().min(2).required()
+});
+
+const querySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10)
+});
+
+const idParamSchema = Joi.object({
+  id: Joi.string().required()
+});
+
+// Apply to routes
+router.post('/users', validateBody(createUserSchema), createUser);
+router.get('/users', validateQuery(querySchema), listUsers);
+router.get('/users/:id', validateParams(idParamSchema), getUser);
+```
+
+**Features:**
+- ✅ Validates req.body, req.query, or req.params
+- ✅ Returns 422 with per-field error details
+- ✅ Strips unknown fields automatically
+- ✅ Converts types (e.g., string to number)
+- ✅ Actionable error messages
+- ✅ Consistent error format across all endpoints
+
 ### `auth.js` - Authentication & Authorization
 
 **Authentication:**
@@ -97,7 +153,22 @@ router.put('/buses/:id',
 
 ## 🧪 Testing
 
-Run auth middleware tests:
+**Validation Middleware Tests:**
+```bash
+node tests/middlewares/validation.test.js
+```
+
+Test coverage:
+- ✅ validateBody success cases (3 tests)
+- ✅ validateBody error format (3 tests)
+- ✅ validateQuery parameters (3 tests)
+- ✅ validateParams parameters (2 tests)
+- ✅ Generic validate function (3 tests)
+- ✅ Actionable error messages (1 test)
+
+**Total: 15 tests, all passing**
+
+**Auth Middleware Tests:**
 ```bash
 node tests/middlewares/auth.test.js
 ```
@@ -114,7 +185,19 @@ Test coverage:
 
 ## 📝 Best Practices
 
-1. **Always use authenticateToken first**
+1. **Always validate request data**
+   ```javascript
+   // ✓ Good - validate before processing
+   router.post('/users', 
+     validateBody(userSchema), 
+     createUser
+   );
+   
+   // ✗ Bad - no validation
+   router.post('/users', createUser); // Unsafe!
+   ```
+
+2. **Always use authenticateToken first**
    ```javascript
    // ✓ Good
    router.get('/admin', authenticateToken, requireAdmin, handler);
@@ -123,11 +206,12 @@ Test coverage:
    router.get('/admin', requireAdmin, handler); // req.user not set!
    ```
 
-2. **One middleware per responsibility**
+3. **One middleware per responsibility**
+   - Validation separate from authentication
    - Authentication separate from authorization
    - Each middleware does one thing well
 
-3. **Export named functions**
+4. **Export named functions**
    ```javascript
    // ✓ Good
    const { authenticateToken, requireAdmin } = require('./auth');
@@ -136,7 +220,7 @@ Test coverage:
    const auth = require('./auth');
    ```
 
-4. **Don't put business logic in middleware**
+5. **Don't put business logic in middleware**
    ```javascript
    // ✓ Good - middleware just checks auth
    function authenticateToken(req, res, next) {
@@ -155,7 +239,7 @@ Test coverage:
    }
    ```
 
-5. **Use optionalAuth for public/private views**
+6. **Use optionalAuth for public/private views**
    ```javascript
    router.get('/feed', optionalAuth, (req, res) => {
      if (req.user) {

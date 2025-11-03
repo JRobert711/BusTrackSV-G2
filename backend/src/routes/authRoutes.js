@@ -11,6 +11,7 @@ const Joi = require('joi');
 const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middlewares/auth');
+const { validateBody } = require('../middlewares/validation');
 const { PASSWORD_REGEX } = require('../utils/validation');
 
 /**
@@ -87,46 +88,6 @@ const refreshTokenSchema = Joi.object({
 });
 
 /**
- * Validation Middleware Factory
- *
- * Creates middleware that validates request body against Joi schema.
- * Returns 422 with per-field details on validation failure.
- *
- * @param {Joi.Schema} schema - Joi schema to validate against
- * @returns {Function} Express middleware
- */
-function validate(schema) {
-  return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
-      abortEarly: false, // Collect all errors, not just the first one
-      stripUnknown: true // Remove unknown fields
-    });
-
-    if (error) {
-      // Format validation errors with per-field details
-      const errors = {};
-      error.details.forEach(detail => {
-        const field = detail.path[0];
-        if (!errors[field]) {
-          errors[field] = [];
-        }
-        errors[field].push(detail.message);
-      });
-
-      return res.status(422).json({
-        error: 'Validation failed',
-        type: 'VALIDATION_ERROR',
-        details: errors
-      });
-    }
-
-    // Replace req.body with validated and sanitized value
-    req.body = value;
-    next();
-  };
-}
-
-/**
  * Rate Limiters
  */
 
@@ -187,7 +148,7 @@ const apiLimiter = rateLimit({
 router.post(
   '/register',
   registerLimiter,
-  validate(registerSchema),
+  validateBody(registerSchema),
   authController.register
 );
 
@@ -197,7 +158,7 @@ router.post(
 router.post(
   '/login',
   loginLimiter,
-  validate(loginSchema),
+  validateBody(loginSchema),
   authController.login
 );
 
@@ -207,7 +168,7 @@ router.post(
 router.post(
   '/refresh',
   apiLimiter,
-  validate(refreshTokenSchema),
+  validateBody(refreshTokenSchema),
   authController.refreshToken
 );
 

@@ -1,0 +1,1119 @@
+openapi: 3.1.0
+info:
+  title: BusTrack SV API
+  description: |
+    RESTful API for BusTrack SV - Real-time bus tracking system for El Salvador.
+    
+    ## Authentication
+    Most endpoints require JWT Bearer token authentication. Obtain tokens via `/auth/login` or `/auth/register`.
+    
+    ## Error Handling
+    All errors follow a consistent envelope format with appropriate HTTP status codes.
+    
+  version: 1.0.0
+  contact:
+    name: BusTrack SV Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Development server
+  - url: https://api.bustrack.sv/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Buses
+    description: Bus management operations
+  - name: Health
+    description: Service health and readiness checks
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: bustrack-sv-backend
+                  version:
+                    type: string
+                    example: 1.0.0
+              example:
+                status: healthy
+                service: bustrack-sv-backend
+                version: 1.0.0
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Returns whether the service is ready to accept requests
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  timestamp:
+                    type: string
+                    format: date-time
+              example:
+                status: ready
+                timestamp: '2024-01-01T12:00:00.000Z'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: not_ready
+                  reason:
+                    type: string
+                    example: Database connection not available
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account and receive authentication tokens
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - name
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email address (will be normalized to lowercase)
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  description: User full name
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 128
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,128}$'
+                  description: Password (min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char)
+                role:
+                  type: string
+                  enum: [admin, supervisor]
+                  default: supervisor
+                  description: User role
+            example:
+              email: admin@bustrack.com
+              name: Admin User
+              password: MyP@ssw0rd123
+              role: admin
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                user:
+                  id: abc123
+                  email: admin@bustrack.com
+                  name: Admin User
+                  role: admin
+                  createdAt: '2024-01-01T12:00:00.000Z'
+                  updatedAt: '2024-01-01T12:00:00.000Z'
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Email already in use
+                type: Error
+                field: email
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                error:
+                  code: VALIDATION_ERROR
+                  message: Invalid request data
+                  details:
+                    email: Email must be a valid email address
+                    password: Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 special character (!@#$%^&*)
+        '429':
+          description: Too many registration attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Too many registration attempts from this IP, please try again after 1 hour
+                type: RATE_LIMIT_EXCEEDED
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and receive authentication tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            example:
+              email: admin@bustrack.com
+              password: MyP@ssw0rd123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                user:
+                  id: abc123
+                  email: admin@bustrack.com
+                  name: Admin User
+                  role: admin
+                  createdAt: '2024-01-01T12:00:00.000Z'
+                  updatedAt: '2024-01-01T12:00:00.000Z'
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid email or password
+                type: Error
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generate new access and refresh tokens using a valid refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+            example:
+              refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  refreshToken:
+                    type: string
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: Returns the authenticated user's profile information
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+              example:
+                user:
+                  id: abc123
+                  email: admin@bustrack.com
+                  name: Admin User
+                  role: admin
+                  createdAt: '2024-01-01T12:00:00.000Z'
+                  updatedAt: '2024-01-01T12:00:00.000Z'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /buses:
+    get:
+      tags:
+        - Buses
+      summary: List all buses
+      description: |
+        Returns a paginated list of buses with optional filtering.
+        
+        **Permissions:** Any authenticated user (supervisor or admin)
+      operationId: listBuses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/RouteParam'
+        - $ref: '#/components/parameters/StatusParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+      responses:
+        '200':
+          description: List of buses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bus'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+              example:
+                data:
+                  - id: bus001
+                    licensePlate: ABC-123
+                    unitName: Bus 001
+                    status: moving
+                    route: Route 1
+                    driver: driver123
+                    movingTime: 3600
+                    parkedTime: 1800
+                    isFavorite: true
+                    position:
+                      lat: 13.6929
+                      lng: -89.2182
+                  - id: bus002
+                    licensePlate: DEF-456
+                    unitName: Bus 002
+                    status: parked
+                    route: Route 2
+                    driver: null
+                    movingTime: 0
+                    parkedTime: 7200
+                    isFavorite: false
+                    position: null
+                pagination:
+                  page: 1
+                  pageSize: 10
+                  total: 45
+                  totalPages: 5
+                  hasMore: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    post:
+      tags:
+        - Buses
+      summary: Create a new bus
+      description: |
+        Creates a new bus in the system.
+        
+        **Permissions:** Admin only
+      operationId: createBus
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusInput'
+            example:
+              licensePlate: ABC-123
+              unitName: Bus 001
+              status: parked
+              route: Route 1
+              driver: driver123
+              movingTime: 0
+              parkedTime: 0
+              isFavorite: false
+              position:
+                lat: 13.6929
+                lng: -89.2182
+      responses:
+        '201':
+          description: Bus created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bus:
+                    $ref: '#/components/schemas/Bus'
+              example:
+                bus:
+                  id: bus001
+                  licensePlate: ABC-123
+                  unitName: Bus 001
+                  status: parked
+                  route: Route 1
+                  driver: driver123
+                  movingTime: 0
+                  parkedTime: 0
+                  isFavorite: false
+                  position:
+                    lat: 13.6929
+                    lng: -89.2182
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: License plate already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Bus with this license plate already exists
+                type: Error
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /buses/{id}:
+    get:
+      tags:
+        - Buses
+      summary: Get bus by ID
+      description: |
+        Returns a single bus by its ID.
+        
+        **Permissions:** Any authenticated user (supervisor or admin)
+      operationId: getBusById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bus ID
+      responses:
+        '200':
+          description: Bus retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bus:
+                    $ref: '#/components/schemas/Bus'
+              example:
+                bus:
+                  id: bus001
+                  licensePlate: ABC-123
+                  unitName: Bus 001
+                  status: moving
+                  route: Route 1
+                  driver: driver123
+                  movingTime: 3600
+                  parkedTime: 1800
+                  isFavorite: true
+                  position:
+                    lat: 13.6929
+                    lng: -89.2182
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags:
+        - Buses
+      summary: Update a bus
+      description: |
+        Updates an existing bus. All fields are optional.
+        
+        **Permissions:** Admin only
+      operationId: updateBus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bus ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusUpdate'
+            example:
+              status: maintenance
+              route: Route 2
+              isFavorite: true
+      responses:
+        '200':
+          description: Bus updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bus:
+                    $ref: '#/components/schemas/Bus'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags:
+        - Buses
+      summary: Delete a bus
+      description: |
+        Deletes a bus from the system.
+        
+        **Permissions:** Admin only
+      operationId: deleteBus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bus ID
+      responses:
+        '204':
+          description: Bus deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /buses/{id}/favorite:
+    patch:
+      tags:
+        - Buses
+      summary: Toggle bus favorite status
+      description: |
+        Toggles the favorite status of a bus.
+        
+        **Permissions:** Any authenticated user (supervisor or admin)
+      operationId: toggleBusFavorite
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bus ID
+      responses:
+        '200':
+          description: Favorite status toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bus:
+                    $ref: '#/components/schemas/Bus'
+              example:
+                bus:
+                  id: bus001
+                  licensePlate: ABC-123
+                  unitName: Bus 001
+                  status: moving
+                  route: Route 1
+                  driver: driver123
+                  movingTime: 3600
+                  parkedTime: 1800
+                  isFavorite: true
+                  position:
+                    lat: 13.6929
+                    lng: -89.2182
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /buses/{id}/position:
+    patch:
+      tags:
+        - Buses
+      summary: Update bus GPS position
+      description: |
+        Updates the GPS coordinates of a bus.
+        
+        **Permissions:** Admin only
+      operationId: updateBusPosition
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Bus ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Position'
+            example:
+              lat: 13.6929
+              lng: -89.2182
+      responses:
+        '200':
+          description: Position updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bus:
+                    $ref: '#/components/schemas/Bus'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token obtained from /auth/login or /auth/register
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+
+    PageSizeParam:
+      name: pageSize
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      example: 10
+
+    RouteParam:
+      name: route
+      in: query
+      description: Filter by route
+      required: false
+      schema:
+        type: string
+      example: Route 1
+
+    StatusParam:
+      name: status
+      in: query
+      description: Filter by status
+      required: false
+      schema:
+        type: string
+        enum: [parked, moving, maintenance]
+      example: moving
+
+    SortParam:
+      name: sort
+      in: query
+      description: Field to sort by
+      required: false
+      schema:
+        type: string
+        enum: [createdAt, licensePlate, unitName, status]
+        default: createdAt
+      example: licensePlate
+
+    OrderParam:
+      name: order
+      in: query
+      description: Sort order
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      example: asc
+
+  schemas:
+    UserPublic:
+      type: object
+      description: User object with public fields only (no password hash)
+      required:
+        - id
+        - email
+        - name
+        - role
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: User ID
+        email:
+          type: string
+          format: email
+          description: User email (lowercase)
+        name:
+          type: string
+          description: User full name
+        role:
+          type: string
+          enum: [admin, supervisor]
+          description: User role
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+      example:
+        id: abc123
+        email: admin@bustrack.com
+        name: Admin User
+        role: admin
+        createdAt: '2024-01-01T12:00:00.000Z'
+        updatedAt: '2024-01-01T12:00:00.000Z'
+
+    Bus:
+      type: object
+      description: Bus entity with all fields
+      required:
+        - id
+        - licensePlate
+        - unitName
+        - status
+        - movingTime
+        - parkedTime
+        - isFavorite
+      properties:
+        id:
+          type: string
+          description: Bus ID
+        licensePlate:
+          type: string
+          description: License plate (uppercase)
+          minLength: 3
+          maxLength: 20
+        unitName:
+          type: string
+          description: Bus unit name
+          minLength: 1
+          maxLength: 50
+        status:
+          type: string
+          enum: [parked, moving, maintenance]
+          description: Current bus status
+        route:
+          type: string
+          nullable: true
+          description: Route identifier
+        driver:
+          type: string
+          nullable: true
+          description: Driver identifier
+        movingTime:
+          type: number
+          description: Time spent moving (seconds)
+          minimum: 0
+        parkedTime:
+          type: number
+          description: Time spent parked (seconds)
+          minimum: 0
+        isFavorite:
+          type: boolean
+          description: Favorite marker
+        position:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Position'
+      example:
+        id: bus001
+        licensePlate: ABC-123
+        unitName: Bus 001
+        status: moving
+        route: Route 1
+        driver: driver123
+        movingTime: 3600
+        parkedTime: 1800
+        isFavorite: true
+        position:
+          lat: 13.6929
+          lng: -89.2182
+
+    BusInput:
+      type: object
+      description: Bus creation input
+      required:
+        - licensePlate
+        - unitName
+        - status
+      properties:
+        licensePlate:
+          type: string
+          minLength: 3
+          maxLength: 20
+        unitName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        status:
+          type: string
+          enum: [parked, moving, maintenance]
+        route:
+          type: string
+          nullable: true
+        driver:
+          type: string
+          nullable: true
+        movingTime:
+          type: number
+          minimum: 0
+          default: 0
+        parkedTime:
+          type: number
+          minimum: 0
+          default: 0
+        isFavorite:
+          type: boolean
+          default: false
+        position:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Position'
+
+    BusUpdate:
+      type: object
+      description: Bus update input (all fields optional)
+      properties:
+        licensePlate:
+          type: string
+          minLength: 3
+          maxLength: 20
+        unitName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        status:
+          type: string
+          enum: [parked, moving, maintenance]
+        route:
+          type: string
+          nullable: true
+        driver:
+          type: string
+          nullable: true
+        movingTime:
+          type: number
+          minimum: 0
+        parkedTime:
+          type: number
+          minimum: 0
+        isFavorite:
+          type: boolean
+        position:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Position'
+      minProperties: 1
+
+    Position:
+      type: object
+      description: GPS coordinates
+      required:
+        - lat
+        - lng
+      properties:
+        lat:
+          type: number
+          description: Latitude
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          description: Longitude
+          minimum: -180
+          maximum: 180
+      example:
+        lat: 13.6929
+        lng: -89.2182
+
+    Pagination:
+      type: object
+      description: Pagination metadata
+      required:
+        - page
+        - pageSize
+        - total
+        - totalPages
+        - hasMore
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          minimum: 1
+        pageSize:
+          type: integer
+          description: Items per page
+          minimum: 1
+        total:
+          type: integer
+          description: Total number of items
+          minimum: 0
+        totalPages:
+          type: integer
+          description: Total number of pages
+          minimum: 0
+        hasMore:
+          type: boolean
+          description: Whether there are more pages
+      example:
+        page: 1
+        pageSize: 10
+        total: 45
+        totalPages: 5
+        hasMore: true
+
+    AuthResponse:
+      type: object
+      description: Authentication response with user and tokens
+      required:
+        - user
+        - token
+        - refreshToken
+      properties:
+        user:
+          $ref: '#/components/schemas/UserPublic'
+        token:
+          type: string
+          description: JWT access token (expires in 15 minutes)
+        refreshToken:
+          type: string
+          description: JWT refresh token (expires in 7 days)
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      required:
+        - error
+        - type
+      properties:
+        error:
+          type: string
+          description: Error message
+        type:
+          type: string
+          description: Error type
+        field:
+          type: string
+          description: Field that caused the error (if applicable)
+      example:
+        error: Bus not found
+        type: NOT_FOUND
+
+    ValidationErrorResponse:
+      type: object
+      description: Validation error response (422)
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - details
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR]
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties:
+                type: string
+      example:
+        error:
+          code: VALIDATION_ERROR
+          message: Invalid request data
+          details:
+            email: Email must be a valid email address
+            password: Password must be at least 8 characters long
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or token invalid/expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingToken:
+              value:
+                error: Authorization header is required
+                type: UNAUTHORIZED
+            expiredToken:
+              value:
+                error: Token has expired. Please login again.
+                type: TOKEN_EXPIRED
+            invalidToken:
+              value:
+                error: Invalid or malformed token
+                type: TOKEN_INVALID
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Access denied. Required role(s): admin. Your role: supervisor'
+            type: FORBIDDEN
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Bus not found
+            type: NOT_FOUND
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Invalid request data
+              details:
+                page: Page must be a number
+                status: Status must be one of parked, moving, maintenance
