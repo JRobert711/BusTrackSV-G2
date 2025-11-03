@@ -28,3 +28,35 @@ Este backend está construido con Express y organizado en capas para facilitar m
 - Configuraciones → `config/`.
 
 Para más detalle, revisa los README dentro de cada subcarpeta.
+
+---
+
+## Nuevas implementaciones (explicación no técnica)
+
+- .env (variables de entorno)
+  - Piensa en un “papelito secreto” con datos como el puerto o la llave del token.
+  - Ventajas: seguridad (no se sube al repo), flexibilidad (cambia por entorno) y orden.
+  - Archivo de ejemplo: `.env.example`. Crea tu `.env` a partir de ahí.
+
+- Seguridad y observabilidad
+  - Helmet: “casco de seguridad” que pone protecciones estándar al servidor.
+  - Rate limit: “torniquete” que limita intentos (evita abusos en login, por ejemplo).
+  - Logs (morgan): “bitácora” de entradas/salidas para entender qué pasó cuando algo falla.
+
+- Validación de datos (validators)
+  - “Guardia de entrada” que revisa que lo que envían los clientes tenga sentido (campos obligatorios, formatos, etc.).
+  - Evita errores innecesarios y mejora la seguridad.
+
+- Swagger (/docs)
+  - “Manual interactivo”: ves los endpoints y los puedes probar desde el navegador.
+  - Ideal para personas nuevas en el proyecto y para QA.
+
+## Cómo instalar dependencias nuevas
+- Ejecuta en `backend/`:
+  - `npm install`
+
+## Rutas útiles
+- Salud: `GET /` y `GET /health`.
+- Documentación: `GET /docs` (Swagger UI).
+- Auth: `POST /api/v1/auth/login`.
+- Buses: `GET /api/v1/buses`, `PATCH /api/v1/buses/:id/favorite`.
