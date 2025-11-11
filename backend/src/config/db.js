@@ -49,27 +49,39 @@ function initializeFirebase() {
       throw new Error(`Unable to load service account from path: ${GOOGLE_APPLICATION_CREDENTIALS}`);
     }
   } else {
-    // No credentials provided - FAIL FAST
-    const errorMessage = `
-╔════════════════════════════════════════════════════════════════════╗
-║                    CONFIGURATION ERROR                             ║
-╠════════════════════════════════════════════════════════════════════╣
-║  Firebase Admin credentials are not configured.                    ║
-║                                                                    ║
-║  Please provide ONE of the following:                              ║
-║                                                                    ║
-║  Option 1 (Recommended for production):                            ║
-║    FIREBASE_SERVICE_ACCOUNT_BASE64=<base64-encoded-json>          ║
-║                                                                    ║
-║  Option 2 (Recommended for local development):                     ║
-║    GOOGLE_APPLICATION_CREDENTIALS=./path/to/serviceAccount.json   ║
-║                                                                    ║
-║  See .env.example for more details.                                ║
-╚════════════════════════════════════════════════════════════════════╝
-    `.trim();
+    // No credentials provided - WARN and return a lightweight stub for local development
+    // This allows the server to run for frontend development without exiting the process.
+    const warnMessage = `
+Firebase Admin credentials are not configured. The server will run in "no-Firebase" mode.
+Some features that depend on Firestore will be disabled or will throw at runtime.
 
-    console.error(errorMessage);
-    throw new Error('Firebase Admin credentials are not configured');
+Provide one of the following to enable Firebase:
+  - FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON)
+  - GOOGLE_APPLICATION_CREDENTIALS (path to JSON file)
+
+See backend/.env.example for examples.
+`.trim();
+
+    console.warn(warnMessage);
+
+    // Return a minimal stub admin object with a firestore() method that provides
+    // clear runtime errors when used. This keeps the rest of the app importable
+    // without forcing a hard process.exit during development.
+    const stubAdmin = {
+      firestore: () => ({
+        collection: () => ({
+          doc: () => ({
+            set: async () => { throw new Error('Firestore is not available in no-Firebase (stub) mode'); },
+            get: async () => ({ exists: false }),
+            update: async () => { throw new Error('Firestore is not available in no-Firebase (stub) mode'); },
+            delete: async () => { throw new Error('Firestore is not available in no-Firebase (stub) mode'); }
+          })
+        })
+      }),
+      credential: { cert: () => null }
+    };
+
+    return stubAdmin;
   }
 
   // Initialize Firebase Admin with the service account

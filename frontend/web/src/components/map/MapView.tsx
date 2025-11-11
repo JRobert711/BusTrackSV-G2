@@ -125,7 +125,7 @@ export function MapView({ buses, selectedBus, onBusSelect }: MapViewProps) {
       {/* Route Lines (for selected bus) */}
       {selectedBus && (
         <div className="absolute inset-0 pointer-events-none">
-          <svg className="w-full h-full">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
               <pattern id="route-pattern" patternUnits="userSpaceOnUse" width="10" height="10">
                 <rect width="10" height="10" fill="transparent"/>
@@ -133,11 +133,11 @@ export function MapView({ buses, selectedBus, onBusSelect }: MapViewProps) {
               </pattern>
             </defs>
             <path
-              d="M 20% 30% Q 40% 20% 60% 40% T 80% 60%"
+              d="M 20,30 Q 40,20 60,40 T 80,60"
               stroke="url(#route-pattern)"
-              strokeWidth="3"
+              strokeWidth="0.5"
               fill="none"
-              strokeDasharray="10,5"
+              strokeDasharray="2,1"
               className="animate-pulse"
             />
           </svg>

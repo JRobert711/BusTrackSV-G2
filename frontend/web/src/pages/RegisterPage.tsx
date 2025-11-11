@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bus, Lock, Mail, Eye, EyeOff, User, Phone, Building } from 'lucide-react';
+import { Bus, Lock, Mail, Eye, EyeOff, User, Phone, Building, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -16,9 +16,10 @@ export interface RegisterData {
   password: string;
   name: string;
   phone: string;
-  department: string;
   role: 'supervisor';
 }
+
+import { api } from '../services/api';
 
 export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
   const [formData, setFormData] = useState({
@@ -27,18 +28,18 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
     confirmPassword: '',
     name: '',
     phone: '',
-    department: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validations
-    if (!formData.email || !formData.password || !formData.name || !formData.phone || !formData.department) {
+    if (!formData.email || !formData.password || !formData.name || !formData.phone) {
       setError('Por favor completa todos los campos');
       return;
     }
@@ -53,17 +54,38 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
       return;
     }
 
-    // Create user data
-    const userData: RegisterData = {
-      email: formData.email,
-      password: formData.password,
-      name: formData.name,
-      phone: formData.phone,
-      department: formData.department,
-      role: 'supervisor', // New users are supervisors by default
-    };
+    setLoading(true);
 
-    onRegister(userData);
+    try {
+      // Create user data
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        phone: formData.phone,
+        role: 'supervisor' as const, // New users are supervisors by default
+      };
+
+      const response = await api.register(userData);
+
+      // api.register stores token internally; keep sessionStorage for compatibility
+      if (response && response.token) {
+        sessionStorage.setItem('authToken', response.token);
+      }
+
+      onRegister(userData);
+    } catch (err: any) {
+      // api.request throws plain objects with a 'type' or 'status'
+      if (err && (err.type === 'NETWORK_ERROR' || err.error === 'No se pudo conectar al servidor')) {
+        setError('No se pudo establecer conexión con el sistema. Verifica tu conexión a internet o contacta al administrador.');
+      } else if (err && err.message) {
+        setError(err.message || 'Error al registrar usuario');
+      } else {
+        setError('Ocurrió un error inesperado. Por favor intenta de nuevo.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -164,28 +186,6 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="department">Departamento</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData({ ...formData, department: value })}
-                  >
-                    <SelectTrigger className="pl-10">
-                      <SelectValue placeholder="Selecciona tu departamento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Operaciones">Operaciones</SelectItem>
-                      <SelectItem value="Logística">Logística</SelectItem>
-                      <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                      <SelectItem value="Seguridad">Seguridad</SelectItem>
-                      <SelectItem value="Administración">Administración</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -245,8 +245,15 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
                 </div>
               )}
 
-              <Button type="submit" className="w-full">
-                Crear Cuenta
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creando cuenta...
+                  </>
+                ) : (
+                  'Crear Cuenta'
+                )}
               </Button>
             </form>
 
