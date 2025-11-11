@@ -1,3 +1,31 @@
+# Backend - BusTrack SV
+
+Quick notes to run the backend locally for frontend integration and development.
+
+1) Install dependencies:
+
+   npm install
+
+2) Create a local `.env` file (copy from `.env.example`) and configure one of the
+   Firebase credential options:
+
+   - Local JSON file (recommended for local dev):
+     Set `GOOGLE_APPLICATION_CREDENTIALS=./src/config/firebase-adminsdk.json`
+
+   - Base64-encoded credentials (recommended for CI/production):
+     Set `FIREBASE_SERVICE_ACCOUNT_BASE64=<base64-encoded-json>`
+
+3) Start the server (PowerShell example):
+
+   # set env var for the session and start
+   $env:GOOGLE_APPLICATION_CREDENTIALS = 'C:\path\to\backend\src\config\firebase-adminsdk.json'; node .\src\server.js
+
+Notes:
+- The project is configured to "fail fast" when Firebase credentials are missing. For convenience,
+  the code can now run in a "no-Firebase" stub mode for frontend development; however, Firestore
+  operations will throw clear runtime errors when invoked.
+- If you expect to call Firestore from the frontend integration flow, make sure Firebase credentials
+  are configured as above.
 # BusTrack SV - Backend API
 
 [![CI](https://github.com/JRobert711/BusTrackSV-G2/actions/workflows/ci.yml/badge.svg)](https://github.com/JRobert711/BusTrackSV-G2/actions/workflows/ci.yml)

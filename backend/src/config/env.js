@@ -36,7 +36,7 @@ const config = {
   // Server Port
   // ============================================
   port: {
-    PORT: parseInt(process.env.PORT, 5000)
+    PORT: parseInt(process.env.PORT, 10) || 5000
   },
 
   // ============================================
@@ -75,7 +75,7 @@ const config = {
   // GPS & Data Retention
   // ============================================
   gps: {
-    GPS_RETENTION_DAYS: parseInt(process.env.GPS_RETENTION_DAYS, 30)
+    GPS_RETENTION_DAYS: parseInt(process.env.GPS_RETENTION_DAYS, 10) || 30
   }
 };
 

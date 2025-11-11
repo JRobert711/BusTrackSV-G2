@@ -43,6 +43,38 @@ Necesitas habilitar estos servicios en Firebase Console:
 4. Elige una ubicación (ej: `us-central` o `southamerica-east1` para más cerca de El Salvador)
 5. Haz clic en **"Enable"**
 
+#### 2.2.1 ¿Te pide "Upgrade" (pagar) al crear la base de datos? — Alternativas gratuitas
+
+Si la consola de Firebase te pide "upgrade your plan" en algún punto de la creación, no es necesario pagar para el desarrollo local o para la mayoría de funciones básicas. Aquí tienes alternativas sin costo:
+
+- Opción A — Usar el plan Spark (gratuito) y/o "Start in test mode":
+  - El plan Spark (free) soporta Firestore y Realtime Database con límites de uso razonables para desarrollo y pruebas (límites de lectura/escritura/almacenamiento). Si la consola te fuerza a seleccionar una opción de pago por defecto, busca la opción para continuar con el plan Spark o elige "Start in test mode" en vez de "production". "Test mode" te permite desarrollar rápido; recuerda endurecer reglas antes de producción.
+
+- Opción B — Usar Firebase Emulator Suite (recomendado para desarrollo sin costo):
+  - El Emulator Suite corre localmente y evita cualquier cuota/plan. Te permite emular Auth, Firestore, Realtime DB, Functions y más.
+  - Ventajas: cero coste, rápido feedback, puedes hacer pruebas automatizadas y CI sin credenciales en la nube.
+  - Pasos rápidos:
+    1. Instala Firebase CLI si no lo tienes:
+       ```bash
+       npm install -g firebase-tools
+       ```
+    2. En la raíz del proyecto inicializa los emuladores (si no están):
+       ```bash
+       firebase init emulators
+       ```
+       - Selecciona Firestore, Realtime Database y Authentication según necesites.
+    3. Inicia los emuladores:
+       ```bash
+       firebase emulators:start --only firestore,auth,database
+       ```
+    4. Conecta tu backend al emulador (ejemplos más abajo).
+
+- Opción C — Usar una alternativa DB gratuita (Supabase, MongoDB Atlas, free-tier Postgres, SQLite):
+  - Si no quieres usar Firebase, puedes usar Supabase (Postgres + Realtime) que tiene un plan gratuito generoso, o MongoDB Atlas (cluster free), o incluso una base de datos local como SQLite para pruebas.
+  - Cambiar a una alternativa requiere ajustar la capa de acceso a datos del backend (pequeño cambio de configuración y dependencias), pero evita atarte a Firebase y sus límites.
+
+En la continuación de esta guía verás instrucciones para usar el Emulator Suite y cómo ajustar `backend/.env` para apuntar al emulador.
+
 ### 2.3. Realtime Database (Opcional - para ubicaciones en tiempo real)
 
 1. En el menú lateral, ve a **Realtime Database**

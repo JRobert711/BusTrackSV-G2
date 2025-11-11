@@ -29,3 +29,9 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Firebase Service Account Credentials (NEVER COMMIT THESE)
+*-firebase-adminsdk-*.json
+firebase-adminsdk-*.json
+**/firebase-adminsdk-*.json
+tibitribial-firebase-adminsdk-*.json

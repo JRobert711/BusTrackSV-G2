@@ -52,8 +52,11 @@ class Bus {
       throw new Error('Bus data must be a valid object');
     }
 
-    // Set required fields using setters (which include validation)
-    this.id = data.id;
+    // id is optional for new instances (Firestore will generate one).
+    // Set private field directly when provided.
+    if (data.id) {
+      this.#id = String(data.id);
+    }
     this.licensePlate = data.licensePlate;
     this.unitName = data.unitName;
     this.status = data.status;

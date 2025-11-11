@@ -45,7 +45,11 @@ class User {
     }
 
     // Set fields using setters (which include validation)
-    this.id = data.id;
+    // id is optional for new instances (Firestore will generate one).
+    // Set private field directly to allow creating users before DB assignment.
+    if (data.id) {
+      this.#id = String(data.id);
+    }
     this.email = data.email;
     this.name = data.name;
     this.role = data.role;
