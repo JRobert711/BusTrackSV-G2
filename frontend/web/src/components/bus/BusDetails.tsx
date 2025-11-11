@@ -1,12 +1,17 @@
-import React from 'react';
-import { X, Bus, Clock, MapPin, Route, User, Fuel, Settings, Star, Phone } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { Progress } from './ui/progress';
-import { AdminActions } from './AdminActions';
-import type { User as UserType } from './LoginPage';
+import React, { useState } from 'react';
+import { X, Bus, Clock, MapPin, Route, User, Fuel, Settings, Pin, Phone, Pencil, AlertTriangle, Bell } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { Progress } from '../ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { toast } from 'sonner';
+import { AdminActions } from '../admin/AdminActions';
+import type { User as UserType } from '../../pages/LoginPage';
 
 interface Bus {
   id: string;
@@ -30,7 +35,70 @@ interface BusDetailsProps {
 }
 
 export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, onDeleteBus }: BusDetailsProps) {
+  const [editingRoute, setEditingRoute] = useState(false);
+  const [editingDriver, setEditingDriver] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [reprimanding, setReprimanding] = useState(false);
+  const [newRoute, setNewRoute] = useState('');
+  const [newDriver, setNewDriver] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [reprimandReason, setReprimandReason] = useState('');
+
   if (!bus) return null;
+
+  const handleEditRoute = () => {
+    setNewRoute(bus.route);
+    setEditingRoute(true);
+  };
+
+  const handleEditDriver = () => {
+    setNewDriver(bus.driver);
+    setEditingDriver(true);
+  };
+
+  const handleSaveRoute = () => {
+    if (newRoute.trim()) {
+      onUpdateBus(bus.id, { route: newRoute.trim() });
+      setEditingRoute(false);
+    }
+  };
+
+  const handleSaveDriver = () => {
+    if (newDriver.trim()) {
+      onUpdateBus(bus.id, { driver: newDriver.trim() });
+      setEditingDriver(false);
+    }
+  };
+
+  const handleNotify = () => {
+    setNotificationMessage('');
+    setNotifying(true);
+  };
+
+  const handleSendNotification = () => {
+    if (notificationMessage.trim()) {
+      toast.success(`Notificación enviada a ${bus.driver}`, {
+        description: notificationMessage.trim()
+      });
+      setNotifying(false);
+      setNotificationMessage('');
+    }
+  };
+
+  const handleReprimand = () => {
+    setReprimandReason('');
+    setReprimanding(true);
+  };
+
+  const handleSendReprimand = () => {
+    if (reprimandReason.trim()) {
+      toast.warning(`Amonestación registrada para ${bus.driver}`, {
+        description: reprimandReason.trim()
+      });
+      setReprimanding(false);
+      setReprimandReason('');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -97,10 +165,11 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               size="sm"
               onClick={() => onToggleFavorite(bus.id)}
               className="p-2"
+              title={bus.isFavorite ? 'Despinnear' : 'Pinnear'}
             >
-              <Star 
+              <Pin 
                 className={`h-4 w-4 ${
-                  bus.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
+                  bus.isFavorite ? 'fill-blue-600 text-blue-600' : 'text-gray-400'
                 }`}
               />
             </Button>
@@ -117,40 +186,22 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-6">
-        {/* Current Status */}
-        <Card className="p-4">
-          <h3 className="font-semibold mb-3">Estado Actual</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Velocidad</span>
-              </div>
-              <span className="font-medium">{mockData.speed} km/h</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Fuel className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Combustible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Progress value={mockData.fuel} className="w-16 h-2" />
-                <span className="font-medium text-sm">{mockData.fuel}%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Temperatura</span>
-              </div>
-              <span className="font-medium">{mockData.temperature}°C</span>
-            </div>
-          </div>
-        </Card>
-
         {/* Route Information */}
         <Card className="p-4">
-          <h3 className="font-semibold mb-3">Información de Ruta</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Información de Ruta</h3>
+            {user.role === 'admin' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-1 h-auto"
+                onClick={handleEditRoute}
+                title="Editar Ruta"
+              >
+                <Pencil className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+          </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Route className="h-4 w-4 text-muted-foreground" />
@@ -163,16 +214,25 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               <span className="text-muted-foreground">Próxima parada:</span>
               <span className="font-medium">Terminal Cartago</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Tiempo estimado:</span>
-              <span className="font-medium">15 min</span>
-            </div>
           </div>
         </Card>
 
         {/* Driver Information */}
         <Card className="p-4">
-          <h3 className="font-semibold mb-3">Conductor</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Conductor</h3>
+            {user.role === 'admin' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-1 h-auto"
+                onClick={handleEditDriver}
+                title="Editar Conductor"
+              >
+                <Pencil className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+          </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -182,9 +242,28 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               <Phone className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">{mockData.phoneNumber}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Experiencia:</span>
-              <span className="font-medium">5 años</span>
+            
+            {/* Action Buttons */}
+            <Separator />
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNotify}
+                className="w-full"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Notificar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReprimand}
+                className="w-full"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Amonestar
+              </Button>
             </div>
           </div>
         </Card>
@@ -192,25 +271,10 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
         {/* Time Statistics */}
         <Card className="p-4">
           <h3 className="font-semibold mb-3">Estadísticas de Tiempo</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">Tiempo en movimiento</span>
-                <span className="text-sm font-medium">{formatTime(bus.movingTime)}</span>
-              </div>
-              <Progress value={movingPercentage} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-muted-foreground">Tiempo estacionado</span>
-                <span className="text-sm font-medium">{formatTime(bus.parkedTime)}</span>
-              </div>
-              <Progress value={100 - movingPercentage} className="h-2" />
-            </div>
-            <Separator />
+          <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Tiempo total hoy</span>
-              <span className="font-medium">{formatTime(totalTime)}</span>
+              <span className="text-sm text-muted-foreground">Tiempo en movimiento</span>
+              <span className="font-medium">{formatTime(bus.movingTime)}</span>
             </div>
           </div>
         </Card>
@@ -224,10 +288,6 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               <span className="font-medium">{mockData.lastMaintenance}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Kilometraje total:</span>
-              <span className="font-medium">{mockData.totalKm.toLocaleString()} km</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Próximo servicio:</span>
               <span className="font-medium">En 15 días</span>
             </div>
@@ -235,23 +295,153 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
         </Card>
 
         {/* Admin/Supervisor Actions */}
-        <Card className="p-4">
-          <h3 className="font-semibold mb-3">
-            {user.role === 'admin' ? 'Acciones de Administrador' : 'Acciones de Supervisor'}
-          </h3>
-          <AdminActions
-            bus={bus}
-            userRole={user.role}
-            onDeleteBus={onDeleteBus}
-            onChangeRoute={(busId, newRoute) => onUpdateBus(busId, { route: newRoute })}
-            onChangeDriver={(busId, newDriver) => onUpdateBus(busId, { driver: newDriver })}
-            onChangeStatus={(busId, newStatus) => onUpdateBus(busId, { status: newStatus })}
-            onNotify={(busId, message) => console.log('Notify:', busId, message)}
-            onWarning={(busId, reason) => console.log('Warning:', busId, reason)}
-            onMessage={(busId, message) => console.log('Message:', busId, message)}
-          />
-        </Card>
+        {user.role === 'admin' && (
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3">Acciones de Administrador</h3>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (window.confirm(`¿Estás seguro de eliminar el bus ${bus.licensePlate}?`)) {
+                  onDeleteBus(bus.id);
+                }
+              }}
+              className="w-full"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
+          </Card>
+        )}
       </div>
+
+      {/* Edit Route Dialog */}
+      <Dialog open={editingRoute} onOpenChange={setEditingRoute}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Ruta</DialogTitle>
+            <DialogDescription>
+              Cambia la ruta asignada al bus {bus.licensePlate}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="route">Número de Ruta</Label>
+              <Input
+                id="route"
+                value={newRoute}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoute(e.target.value)}
+                placeholder="Ej: 101"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRoute(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveRoute}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Driver Dialog */}
+      <Dialog open={editingDriver} onOpenChange={setEditingDriver}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Conductor</DialogTitle>
+            <DialogDescription>
+              Cambia el conductor asignado al bus {bus.licensePlate}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="driver">Nombre del Conductor</Label>
+              <Input
+                id="driver"
+                value={newDriver}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDriver(e.target.value)}
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDriver(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveDriver}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notify Driver Dialog */}
+      <Dialog open={notifying} onOpenChange={setNotifying}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notificar al Conductor</DialogTitle>
+            <DialogDescription>
+              Envía una notificación a {bus.driver}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="notification">Mensaje de Notificación</Label>
+              <Textarea
+                id="notification"
+                value={notificationMessage}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotificationMessage(e.target.value)}
+                placeholder="Escribe el mensaje que deseas enviar al conductor..."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotifying(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendNotification}>
+              <Bell className="h-4 w-4 mr-2" />
+              Enviar Notificación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reprimand Driver Dialog */}
+      <Dialog open={reprimanding} onOpenChange={setReprimanding}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Amonestar al Conductor</DialogTitle>
+            <DialogDescription>
+              Registra una amonestación para {bus.driver}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="reprimand">Motivo de la Amonestación</Label>
+              <Textarea
+                id="reprimand"
+                value={reprimandReason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReprimandReason(e.target.value)}
+                placeholder="Describe el motivo de la amonestación..."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReprimanding(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendReprimand} variant="destructive">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Registrar Amonestación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

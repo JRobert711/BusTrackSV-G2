@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { User, Mail, Phone, Calendar, Building, Shield, ArrowLeft, Edit, Save } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Badge } from '../components/ui/badge';
+import { Separator } from '../components/ui/separator';
 import type { User as UserType } from './LoginPage';
 
 interface UserProfileProps {
@@ -179,99 +179,6 @@ export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
                     <span>{user.department}</span>
                   </div>
                 )}
-              </div>
-            </div>
-          </Card>
-
-          {/* Role & Permissions */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Rol y Permisos</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium">Rol Actual</p>
-                    <p className="text-sm text-muted-foreground">
-                      {user.role === 'admin' ? 'Administrador del Sistema' : 'Supervisor de Operaciones'}
-                    </p>
-                  </div>
-                </div>
-                {getRoleBadge(user.role)}
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-medium mb-3">Permisos Asignados</h4>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {user.role === 'admin' ? (
-                    <>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Gestión completa de usuarios</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Configuración del sistema</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Acceso a todos los reportes</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Gestión de flotas</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Administración de rutas</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Gestión de conductores</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span>Monitoreo de flota</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span>Reportes de operaciones</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span>Gestión de incidencias</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span>Comunicación con conductores</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Activity Stats */}
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Estadísticas de Actividad</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600 mb-1">Buses Monitoreados</p>
-                <p className="text-2xl font-bold text-blue-900">12</p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600 mb-1">Rutas Activas</p>
-                <p className="text-2xl font-bold text-green-900">8</p>
-              </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-600 mb-1">Reportes Generados</p>
-                <p className="text-2xl font-bold text-purple-900">47</p>
               </div>
             </div>
           </Card>
