@@ -5,6 +5,7 @@ import { Input } from '../components//ui/input';
 import { Label } from '../components//ui/label';
 import { Card } from '../components//ui/card';
 import { Checkbox } from '../components//ui/checkbox';
+import { api, type AuthResponse } from '../services/api';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -17,32 +18,10 @@ export interface User {
   name: string;
   role: 'admin' | 'supervisor';
   avatar?: string;
-  department: string;
-  phone: string;
-  joinDate: string;
+  department?: string;
+  phone?: string;
+  joinDate?: string;
 }
-
-// Mock users for demo
-const mockUsers: Record<string, User> = {
-  'admin@bustrack.com': {
-    id: '1',
-    email: 'admin@bustrack.com',
-    name: 'Carlos Administrador',
-    role: 'admin',
-    department: 'Gerencia General',
-    phone: '+506 8888-0001',
-    joinDate: '2020-01-15'
-  },
-  'supervisor@bustrack.com': {
-    id: '2',
-    email: 'supervisor@bustrack.com',
-    name: 'María Supervisora',
-    role: 'supervisor',
-    department: 'Operaciones',
-    phone: '+506 8888-0002',
-    joinDate: '2021-03-20'
-  }
-};
 
 export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [email, setEmail] = useState('');
@@ -50,24 +29,53 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Simple validation
-    const user = mockUsers[email];
-    if (user && password === 'demo123') {
+    try {
+      const response: AuthResponse = await api.login({ email, password });
+      
+      // Map API response to User interface
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        role: response.user.role
+      };
+
       onLogin(user);
-    } else {
-      setError('Credenciales incorrectas. Intenta con admin@bustrack.com o supervisor@bustrack.com (contraseña: demo123)');
+    } catch (err: any) {
+      setError(err.error || 'Credenciales incorrectas. Por favor, verifica tu email y contraseña.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleQuickLogin = (userEmail: string) => {
-    const user = mockUsers[userEmail];
-    if (user) {
+  const handleQuickLogin = async (userEmail: string, userPassword: string = 'demo123') => {
+    setError('');
+    setLoading(true);
+    setEmail(userEmail);
+    setPassword(userPassword);
+
+    try {
+      const response: AuthResponse = await api.login({ email: userEmail, password: userPassword });
+      
+      // Map API response to User interface
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        role: response.user.role
+      };
+
       onLogin(user);
+    } catch (err: any) {
+      setError(err.error || 'Error al iniciar sesión rápida. Asegúrate de que los usuarios de prueba existan en la base de datos.');
+      setLoading(false);
     }
   };
 
@@ -110,11 +118,6 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
             </div>
           </div>
 
-          <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Demo:</strong> Usa admin@bustrack.com o supervisor@bustrack.com con contraseña: demo123
-            </p>
-          </div>
         </div>
 
         {/* Right side - Login form */}
@@ -133,7 +136,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="usuario@bustrack.com"
+                    placeholder="correo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -194,8 +197,8 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                 </div>
               )}
 
-              <Button type="submit" className="w-full">
-                Iniciar Sesión
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
 
@@ -223,6 +226,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                 variant="outline"
                 onClick={() => handleQuickLogin('admin@bustrack.com')}
                 className="w-full"
+                disabled={loading}
               >
                 Admin
               </Button>
@@ -230,10 +234,18 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                 variant="outline"
                 onClick={() => handleQuickLogin('supervisor@bustrack.com')}
                 className="w-full"
+                disabled={loading}
               >
                 Supervisor
               </Button>
             </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-800">
+                <strong>Demo:</strong> Usa admin@bustrack.com o supervisor@bustrack.com con contraseña: demo123
+              </p>
+            </div>
+
           </div>
         </Card>
       </div>

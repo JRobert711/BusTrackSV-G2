@@ -4,9 +4,31 @@
  * Handles all HTTP requests to the backend API
  */
 
-// Backend API URL - configured for local development
-// TODO: Update this URL for production deployment
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+// Backend API URL - configured via environment variable
+// Default to localhost for development if not set
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+// Normalize the URL - ensure it doesn't end with a slash
+API_BASE_URL = API_BASE_URL.trim().replace(/\/$/, '');
+
+// Validate URL format
+try {
+  new URL(API_BASE_URL);
+} catch (error) {
+  console.error('Invalid API_BASE_URL format:', API_BASE_URL);
+  API_BASE_URL = 'http://localhost:5000/api/v1';
+  console.warn('Falling back to default:', API_BASE_URL);
+}
+
+if (!import.meta.env.VITE_API_BASE_URL) {
+  console.warn(
+    'VITE_API_BASE_URL is not defined. Using default: http://localhost:5000/api/v1\n' +
+    'To set a custom URL, create a .env file in frontend/web/ with:\n' +
+    'VITE_API_BASE_URL=http://localhost:5000/api/v1'
+  );
+}
+
+console.log('API Base URL configured:', API_BASE_URL);
 
 interface ApiError {
   error: string;
@@ -90,7 +112,21 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    // Ensure endpoint starts with /
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${API_BASE_URL}${normalizedEndpoint}`;
+    
+    // Validate URL before making request
+    try {
+      new URL(url);
+    } catch (error) {
+      console.error('Invalid URL constructed:', url);
+      throw {
+        error: `URL inválida: ${url}`,
+        type: 'INVALID_URL',
+        details: { url, endpoint, apiBaseUrl: API_BASE_URL }
+      };
+    }
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -122,12 +158,14 @@ class ApiService {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof TypeError) {
-        // Network error
+        // Network error - connection refused, etc.
+        console.error('Network error:', error.message, 'URL:', url);
         throw {
-          error: 'No se pudo conectar al servidor',
+          error: 'No se pudo conectar al servidor. Asegúrate de que el servidor backend esté ejecutándose en http://localhost:5000',
           type: 'NETWORK_ERROR',
+          details: { url, message: error.message }
         };
       }
       throw error;
@@ -233,6 +271,62 @@ class ApiService {
 
   async deleteBus(id: string): Promise<void> {
     await this.request<void>(`/buses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // Users
+  // ============================================
+
+  async getUsers(params?: {
+    role?: 'admin' | 'supervisor';
+    limit?: number;
+  }): Promise<{ data: Array<AuthResponse['user']> }> {
+    const queryParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const query = queryParams.toString();
+    const endpoint = query ? `/users?${query}` : '/users';
+    
+    return this.request<{ data: Array<AuthResponse['user']> }>(endpoint);
+  }
+
+  async getUserById(id: string): Promise<{ user: AuthResponse['user'] }> {
+    return this.request<{ user: AuthResponse['user'] }>(`/users/${id}`);
+  }
+
+  async createUser(user: {
+    email: string;
+    name: string;
+    password: string;
+    role?: 'admin' | 'supervisor';
+  }): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/users', {
+      method: 'POST',
+      body: JSON.stringify(user),
+    });
+  }
+
+  async updateUser(id: string, updates: {
+    name?: string;
+    role?: 'admin' | 'supervisor';
+  }): Promise<{ user: AuthResponse['user'] }> {
+    return this.request<{ user: AuthResponse['user'] }>(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await this.request<void>(`/users/${id}`, {
       method: 'DELETE',
     });
   }

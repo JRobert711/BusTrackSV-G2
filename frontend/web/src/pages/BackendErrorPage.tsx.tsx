@@ -36,7 +36,7 @@ export function BackendErrorPage({ onRetry }: BackendErrorPageProps) {
               <Server className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm text-gray-700">
-                  <strong>Dirección del servicio:</strong> {import.meta.env?.VITE_API_URL || "http://localhost:3000/api"}
+                  <strong>Dirección del servicio:</strong> {import.meta.env?.VITE_API_BASE_URL || "No configurada"}
                 </p>
               </div>
             </div>
