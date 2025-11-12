@@ -33,11 +33,14 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
   };
 
   const getRoleBadge = (role: 'admin' | 'supervisor') => {
-    return role === 'admin' ? (
-      <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-        Administrador
-      </Badge>
-    ) : (
+    if (role === 'admin') {
+      return (
+        <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+          Administrador
+        </Badge>
+      );
+    }
+    return (
       <Badge className="bg-blue-100 text-blue-800 border-blue-200">
         Supervisor
       </Badge>
@@ -98,16 +101,18 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-blue-600 text-white">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-gray-500">{user.role === 'admin' ? 'Administrador' : 'Supervisor'}</p>
-                </div>
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <span className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-blue-600 text-white">
+                      {getInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-left hidden md:block">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.role === 'admin' ? 'Administrador' : 'Supervisor'}</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

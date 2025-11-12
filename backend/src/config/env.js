@@ -1,14 +1,6 @@
 // Carga variables desde .env si existe y desde el entorno del sistema.
 require('dotenv').config();
 
-module.exports = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: process.env.PORT || 5000,
-  JWT_SECRET: process.env.JWT_SECRET || 'bustrack_secret_key_2024',
-  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-};
-
 /**
  * Parse comma-separated values into an array
  * @param {string} value - CSV string
@@ -36,7 +28,7 @@ const config = {
   // Server Port
   // ============================================
   port: {
-    PORT: parseInt(process.env.PORT, 10) || 5000
+    PORT: parseInt(process.env.PORT || '5000', 10)
   },
 
   // ============================================
@@ -75,7 +67,7 @@ const config = {
   // GPS & Data Retention
   // ============================================
   gps: {
-    GPS_RETENTION_DAYS: parseInt(process.env.GPS_RETENTION_DAYS, 10) || 30
+    GPS_RETENTION_DAYS: parseInt(process.env.GPS_RETENTION_DAYS || '30', 10)
   }
 };
 
