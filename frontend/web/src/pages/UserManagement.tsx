@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Trash2, Edit, Search, Users, User } from 'lucide-react';
-import { Button } from '../components//ui/button';
-import { Card } from '../components//ui/card';
-import { Input } from '../components//ui/input';
-import { Label } from '../components//ui/label';
-import { Badge } from '../components//ui/badge';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../components//ui/dialog';
+} from '../components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +22,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../components//ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components//ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components//ui/tabs';
+} from '../components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import type { User as UserType } from './LoginPage';
 

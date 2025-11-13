@@ -38,8 +38,8 @@ const generateNotifications = (buses: Bus[], currentUser: UserType): Message[] =
         busPlate: bus.licensePlate,
         from: currentUser.name,
         fromRole: currentUser.role,
-        content: `Bus ${bus.unitName} en mantenimiento. ${bus.driver ? `Conductor: ${bus.driver}` : 'Sin conductor asignado'}.`,
-        timestamp: new Date(bus.updatedAt),
+        content: `Bus ${bus.licensePlate} en mantenimiento. ${bus.driver ? `Conductor: ${bus.driver}` : 'Sin conductor asignado'}.`,
+        timestamp: new Date(),
         read: false
       });
     }
@@ -54,8 +54,8 @@ const generateNotifications = (buses: Bus[], currentUser: UserType): Message[] =
         busPlate: bus.licensePlate,
         from: currentUser.name,
         fromRole: currentUser.role,
-        content: `Bus ${bus.unitName} estacionado por ${hours} horas. Verificar estado.`,
-        timestamp: new Date(bus.updatedAt),
+        content: `Bus ${bus.licensePlate} estacionado por ${hours} horas. Verificar estado.`,
+        timestamp: new Date(),
         read: false
       });
     }
@@ -154,43 +154,45 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
     );
   };
 
-  const MessageItem = ({ message }: { message: Message }) => (
-    <Card 
-      className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-        !message.read ? 'bg-blue-50 border-blue-200' : ''
-      }`}
-      onClick={() => markAsRead(message.id)}
-    >
-      <div className="flex gap-3">
-        <div className="mt-1">
-          {getTypeIcon(message.type)}
-        </div>
-        <div className="flex-1 space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              {getTypeBadge(message.type)}
-              <Badge variant="outline">{message.busPlate}</Badge>
-              {!message.read && (
-                <Badge className="bg-red-500 text-white">Nuevo</Badge>
-              )}
+  const MessageItem = ({ message }: { message: Message }) => {
+    return (
+      <Card 
+        className={`p-4 cursor-pointer transition-all hover:shadow-md ${
+          !message.read ? 'bg-blue-50 border-blue-200' : ''
+        }`}
+        onClick={() => markAsRead(message.id)}
+      >
+        <div className="flex gap-3">
+          <div className="mt-1">
+            {getTypeIcon(message.type)}
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {getTypeBadge(message.type)}
+                <Badge variant="outline">{message.busPlate}</Badge>
+                {!message.read && (
+                  <Badge className="bg-red-500 text-white">Nuevo</Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {formatTime(message.timestamp)}
+              </span>
             </div>
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {formatTime(message.timestamp)}
-            </span>
-          </div>
-          
-          <p className="text-sm">{message.content}</p>
-          
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <User className="h-3 w-3" />
-            <span>{message.from}</span>
-            <span>•</span>
-            <span>{message.fromRole === 'admin' ? 'Administrador' : 'Supervisor'}</span>
+            
+            <p className="text-sm">{message.content}</p>
+            
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <User className="h-3 w-3" />
+              <span>{message.from}</span>
+              <span>•</span>
+              <span>{message.fromRole === 'admin' ? 'Administrador' : 'Supervisor'}</span>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   return (
     <div className="fixed inset-y-0 right-0 w-96 bg-white border-l shadow-lg z-50 flex flex-col h-full">

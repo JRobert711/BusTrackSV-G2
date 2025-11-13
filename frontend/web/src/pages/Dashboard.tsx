@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapView } from '../components/map/MapView';
 import { BusList } from '../components/bus/BusList';
 import { BusDetails } from '../components/bus/BusDetails';
-import { Header } from '../components/layout//Header';
+import { Header } from '../components/layout/Header';
 import { MessagesPanel } from '../components/layout/MessagesPanel';
 import { FleetManagement } from './FleetManagement';
 import { UserManagement } from './UserManagement';

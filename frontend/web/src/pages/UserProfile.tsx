@@ -29,12 +29,15 @@ export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
   };
 
   const getRoleBadge = (role: 'admin' | 'supervisor') => {
-    return role === 'admin' ? (
-      <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-        <Shield className="h-3 w-3 mr-1" />
-        Administrador
-      </Badge>
-    ) : (
+    if (role === 'admin') {
+      return (
+        <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+          <Shield className="h-3 w-3 mr-1" />
+          Administrador
+        </Badge>
+      );
+    }
+    return (
       <Badge className="bg-blue-100 text-blue-800 border-blue-200">
         <Shield className="h-3 w-3 mr-1" />
         Supervisor
