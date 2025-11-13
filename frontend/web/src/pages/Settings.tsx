@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Bell } from 'lucide-react';
-import { Button } from '../components//ui/button';
-import { Card } from '../components//ui/card';
-import { Label } from '../components//ui/label';
-import { Switch } from '../components//ui/switch';
-import { Separator } from '../components//ui/separator';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
+import { Separator } from '../components/ui/separator';
 import type { User as UserType } from './LoginPage';
 
 interface SettingsProps {

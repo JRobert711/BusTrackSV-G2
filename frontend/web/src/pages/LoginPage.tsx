@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Bus, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../components//ui/button';
-import { Input } from '../components//ui/input';
-import { Label } from '../components//ui/label';
-import { Card } from '../components//ui/card';
-import { Checkbox } from '../components//ui/checkbox';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card } from '../components/ui/card';
+import { Checkbox } from '../components/ui/checkbox';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -78,7 +78,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
         <div className="hidden md:block space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-600 rounded-2xl">
-              <Bus className="h-10 w-10 text-white" />
+              {/* <Bus className="h-10 w-10 text-white" /> */}
             </div>
             <div>
               <h1 className="text-4xl font-bold text-gray-900">BusTrack</h1>
@@ -129,7 +129,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  {/* <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" /> */}
                   <Input
                     id="email"
                     type="email"
@@ -145,7 +145,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  {/* <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" /> */}
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}

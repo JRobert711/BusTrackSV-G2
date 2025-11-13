@@ -247,10 +247,10 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
-                  <>
+                  <span className="flex items-center">
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creando cuenta...
-                  </>
+                  </span>
                 ) : (
                   'Crear Cuenta'
                 )}

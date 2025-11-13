@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from 'next-themes';
 import { LoginPage, type User } from './pages/LoginPage';
 import { RegisterPage, type RegisterData } from './pages/RegisterPage';
 import { Dashboard } from './pages/Dashboard';
@@ -61,51 +62,62 @@ export default function App() {
   if (!currentUser) {
     if (currentView === 'register') {
       return (
-        <>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <RegisterPage 
             onBackToLogin={() => setCurrentView('login')} 
             onRegister={handleRegister}
           />
           <Toaster />
-        </>
+        </ThemeProvider>
       );
     }
     
     return (
-      <>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <LoginPage 
           onLogin={handleLogin} 
           onGoToRegister={() => setCurrentView('register')}
         />
         <Toaster />
-      </>
+      </ThemeProvider>
     );
   }
 
   // Show appropriate view based on current view
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return (
+          <Dashboard
+            user={currentUser}
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        );
+      case 'profile':
+        return (
+          <UserProfile
+            user={currentUser}
+            onBack={() => setCurrentView('dashboard')}
+            onUpdateUser={handleUpdateUser}
+          />
+        );
+      case 'settings':
+        return (
+          <Settings
+            user={currentUser}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <>
-      {currentView === 'dashboard' && (
-        <Dashboard
-          user={currentUser}
-          onNavigate={handleNavigate}
-          onLogout={handleLogout}
-        />
-      )}
-      {currentView === 'profile' && (
-        <UserProfile
-          user={currentUser}
-          onBack={() => setCurrentView('dashboard')}
-          onUpdateUser={handleUpdateUser}
-        />
-      )}
-      {currentView === 'settings' && (
-        <Settings
-          user={currentUser}
-          onBack={() => setCurrentView('dashboard')}
-        />
-      )}
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      {renderCurrentView()}
       <Toaster />
-    </>
+    </ThemeProvider>
   );
 }
