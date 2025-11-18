@@ -25,7 +25,7 @@ import {
 } from '../components//ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components//ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components//ui/tabs';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 import type { User as UserType } from './LoginPage';
 
 interface UserManagementProps {

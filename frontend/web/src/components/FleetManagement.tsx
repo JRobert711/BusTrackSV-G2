@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 import { Badge } from './ui/badge';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 import type { User as UserType } from './LoginPage';
 
 interface Bus {
