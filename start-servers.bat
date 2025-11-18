@@ -2,6 +2,12 @@
 echo Iniciando BusTrack SV...
 echo.
 
+echo Iniciando Firebase Emulator...
+start "Firebase Emulator" cmd /k "cd backend && firebase emulators:start --only firestore"
+
+echo Esperando 5 segundos para que el emulador se inicie...
+timeout /t 5 /nobreak > nul
+
 echo Iniciando Backend Server...
 ::No da errores pero node server.js solo ejecuta el backend con lo que ya tiene, si se quiere 
 ::que el backend se este reiniciando con los cambios que se hagan en ejecucion se debe usar npm run dev
@@ -17,7 +23,9 @@ echo Iniciando Frontend Server...
 start "Frontend Server" cmd /k "cd frontend/web && npm run dev"
 
 echo.
-echo Ambos servidores se han iniciado:
+echo Todos los servidores se han iniciado:
+echo - Firebase Emulator: http://localhost:8080
+echo - Emulator UI: http://localhost:4000
 echo - Backend: http://localhost:5000
 echo - Frontend: http://localhost:3000
 echo.

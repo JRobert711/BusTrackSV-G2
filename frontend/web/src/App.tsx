@@ -4,8 +4,9 @@ import { RegisterPage, type RegisterData } from './pages/RegisterPage';
 import { Dashboard } from './pages/Dashboard';
 import { UserProfile } from './pages/UserProfile';
 import { Settings } from './pages/Settings';
+import { toast } from './utils/toast';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 type View = 'login' | 'register' | 'dashboard' | 'profile' | 'settings';
 
@@ -58,53 +59,54 @@ export default function App() {
   };
 
   // Show login/register if no user
+  let content;
   if (!currentUser) {
     if (currentView === 'register') {
-      return (
-        <>
-          <RegisterPage 
-            onBackToLogin={() => setCurrentView('login')} 
-            onRegister={handleRegister}
-          />
-          <Toaster />
-        </>
+      content = (
+        <RegisterPage 
+          onBackToLogin={() => setCurrentView('login')} 
+          onRegister={handleRegister}
+        />
       );
-    }
-    
-    return (
-      <>
+    } else {
+      content = (
         <LoginPage 
           onLogin={handleLogin} 
           onGoToRegister={() => setCurrentView('register')}
         />
-        <Toaster />
-      </>
-    );
-  }
-
-  // Show appropriate view based on current view
-  return (
-    <>
-      {currentView === 'dashboard' && (
+      );
+    }
+  } else {
+    // Show appropriate view based on current view
+    if (currentView === 'dashboard') {
+      content = (
         <Dashboard
           user={currentUser}
           onNavigate={handleNavigate}
           onLogout={handleLogout}
         />
-      )}
-      {currentView === 'profile' && (
+      );
+    } else if (currentView === 'profile') {
+      content = (
         <UserProfile
           user={currentUser}
           onBack={() => setCurrentView('dashboard')}
           onUpdateUser={handleUpdateUser}
         />
-      )}
-      {currentView === 'settings' && (
+      );
+    } else if (currentView === 'settings') {
+      content = (
         <Settings
           user={currentUser}
           onBack={() => setCurrentView('dashboard')}
         />
-      )}
+      );
+    }
+  }
+
+  return (
+    <>
+      {content}
       <Toaster />
     </>
   );

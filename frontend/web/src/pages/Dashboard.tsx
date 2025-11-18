@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapView } from '../components/map/MapView';
+import Map from '../components/map/Map';
 import { BusList } from '../components/bus/BusList';
 import { BusDetails } from '../components/bus/BusDetails';
 import { Header } from '../components/layout//Header';
@@ -215,11 +215,9 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
 
         {/* Main map area */}
         <div className="flex-1 p-4">
-          <MapView
-            buses={buses}
-            selectedBus={selectedBus}
-            onBusSelect={handleBusSelect}
-          />
+          <div className="w-full h-full rounded-lg overflow-hidden border shadow-lg">
+            <Map />
+          </div>
         </div>
 
         {/* Details panel */}

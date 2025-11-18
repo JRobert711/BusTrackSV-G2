@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { toast } from 'sonner';
+import { toast } from '../../utils/toast';
 import { AdminActions } from '../admin/AdminActions';
 import type { User as UserType } from '../../pages/LoginPage';
 
