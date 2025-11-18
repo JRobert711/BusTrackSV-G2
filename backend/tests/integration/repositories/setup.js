@@ -7,7 +7,8 @@
 const admin = require('firebase-admin');
 
 // Firestore Emulator configuration
-const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';
+// Use 127.0.0.1:8080 to match Firebase Emulator default and avoid IPv6/IPv4 issues
+const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 
 /**
  * Initialize Firebase Admin for testing with emulator

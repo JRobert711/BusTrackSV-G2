@@ -53,7 +53,12 @@ const config = {
   // CORS Configuration
   // ============================================
   cors: {
-    CORS_ORIGIN: parseCSV(process.env.CORS_ORIGIN, ['http://localhost:5173']),
+    CORS_ORIGIN: parseCSV(process.env.CORS_ORIGIN, [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173'
+    ]),
     CORS_CREDENTIALS: process.env.CORS_CREDENTIALS === 'true'
   },
 
@@ -68,7 +73,12 @@ const config = {
     GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
 
     // Firebase Database URL (optional, depends on your Firebase setup)
-    FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL || null
+    FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL || null,
+
+    // Firebase Emulator Configuration (development only)
+    // Set FIRESTORE_EMULATOR_HOST to override default (127.0.0.1:8080)
+    FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST || null,
+    FIREBASE_EMULATOR_HOST: process.env.FIREBASE_EMULATOR_HOST || null
   },
 
   // ============================================

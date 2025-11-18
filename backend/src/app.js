@@ -13,10 +13,17 @@ const { errorHandler } = require('./middlewares/error.middleware');
 const app = express();
 
 // Core middlewares
-app.use(helmet());
-app.use(cors());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false // Disable CSP for development
+}));
+const { corsOptions } = require('./config/cors');
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Add preflight handling
+app.options('*', cors(corsOptions));
 
 // API Docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

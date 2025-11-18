@@ -138,6 +138,15 @@ class FirestoreUserRepository extends IUserRepository {
       return this._mapToModel(snapshot.docs[0]);
     } catch (error) {
       console.error('Firestore error in findByEmail:', error);
+      
+      // Si es un error de autenticación de Firebase, devolver null en lugar de lanzar error
+      // Esto permite que el login devuelva 401 (usuario no encontrado) en lugar de 500
+      if (error.code === 16 || error.message.includes('UNAUTHENTICATED') || 
+          error.message.includes('invalid authentication credentials')) {
+        console.warn('Firebase authentication failed - returning null (user not found)');
+        return null;
+      }
+      
       throw new Error(`Database error while finding user by email: ${error.message}`);
     }
   }

@@ -12,6 +12,18 @@ const admin = require('firebase-admin');
 const path = require('path');
 const config = require('./env');
 
+// Set Firebase Emulator host in development mode BEFORE any Firebase initialization
+// This must happen before any Firebase Admin SDK calls
+if (config.env.IS_DEVELOPMENT && !process.env.FIRESTORE_EMULATOR_HOST) {
+  // Default to 127.0.0.1:8080 to match Firebase Emulator default output
+  // This avoids IPv6/IPv4 resolution issues on Windows
+  // Priority: FIREBASE_EMULATOR_HOST env var > default 127.0.0.1:8080
+  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST || '127.0.0.1:8080';
+  process.env.FIRESTORE_EMULATOR_HOST = emulatorHost;
+  console.log(`✓ Configured Firestore emulator at ${emulatorHost}`);
+  console.log(`  (Set FIRESTORE_EMULATOR_HOST env var to override)`);
+}
+
 /**
  * Initialize Firebase Admin SDK
  * @returns {Object} Initialized Firebase Admin instance
@@ -49,8 +61,38 @@ function initializeFirebase() {
       throw new Error(`Unable to load service account from path: ${GOOGLE_APPLICATION_CREDENTIALS}`);
     }
   } else {
-    // No credentials provided - WARN and return a lightweight stub for local development
-    // This allows the server to run for frontend development without exiting the process.
+    // No credentials provided - check if we're using emulator
+    if (config.env.IS_DEVELOPMENT && process.env.FIRESTORE_EMULATOR_HOST) {
+      // Using emulator - initialize with minimal config (no credentials needed)
+      console.log('✓ Using Firestore Emulator (no credentials required)');
+      try {
+        if (admin.apps.length === 0) {
+          admin.initializeApp({
+            projectId: 'bustrack-dev',
+            credential: admin.credential.applicationDefault()
+          });
+          console.log('✓ Firebase Admin SDK initialized for emulator');
+        }
+        return admin;
+      } catch (error) {
+        // If applicationDefault() fails, use a dummy credential
+        console.warn('⚠️  Could not use applicationDefault credentials, using dummy credential for emulator');
+        if (admin.apps.length === 0) {
+          admin.initializeApp({
+            projectId: 'bustrack-dev',
+            credential: admin.credential.cert({
+              projectId: 'bustrack-dev',
+              privateKey: '-----BEGIN PRIVATE KEY-----\nMIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA0dummy\n-----END PRIVATE KEY-----\n',
+              clientEmail: 'dummy@bustrack-dev.iam.gserviceaccount.com'
+            })
+          });
+          console.log('✓ Firebase Admin SDK initialized with dummy credential for emulator');
+        }
+        return admin;
+      }
+    }
+
+    // No credentials and no emulator - return stub
     const warnMessage = `
 Firebase Admin credentials are not configured. The server will run in "no-Firebase" mode.
 Some features that depend on Firestore will be disabled or will throw at runtime.
@@ -58,6 +100,7 @@ Some features that depend on Firestore will be disabled or will throw at runtime
 Provide one of the following to enable Firebase:
   - FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON)
   - GOOGLE_APPLICATION_CREDENTIALS (path to JSON file)
+  - Or use Firebase Emulator in development (FIRESTORE_EMULATOR_HOST)
 
 See backend/.env.example for examples.
 `.trim();
@@ -95,8 +138,14 @@ See backend/.env.example for examples.
   }
 
   try {
-    admin.initializeApp(initConfig);
-    console.log('✓ Firebase Admin SDK initialized successfully');
+    // Check if Firebase is already initialized
+    if (admin.apps.length === 0) {
+      admin.initializeApp(initConfig);
+      console.log('✓ Firebase Admin SDK initialized successfully');
+    } else {
+      console.log('✓ Firebase Admin SDK already initialized');
+      return admin.app();
+    }
   } catch (error) {
     console.error('✗ Failed to initialize Firebase Admin SDK:', error.message);
     throw error;
@@ -106,10 +155,42 @@ See backend/.env.example for examples.
 }
 
 // Initialize Firebase Admin
-const firebaseAdmin = initializeFirebase();
+let firebaseAdmin;
+let db;
 
-// Export Firestore database instance and admin
-const db = firebaseAdmin.firestore();
+try {
+  firebaseAdmin = initializeFirebase();
+  db = firebaseAdmin.firestore();
+} catch (error) {
+  // If initialization fails, use stub mode
+  console.warn('⚠️  Firebase initialization failed, using stub mode');
+  const stubAdmin = {
+    firestore: () => ({
+      collection: () => ({
+        doc: () => ({
+          set: async () => { throw new Error('Firestore is not available in stub mode'); },
+          get: async () => ({ exists: false }),
+          update: async () => { throw new Error('Firestore is not available in stub mode'); },
+          delete: async () => { throw new Error('Firestore is not available in stub mode'); }
+        }),
+        add: async () => { throw new Error('Firestore is not available in stub mode'); },
+        where: () => ({
+          limit: () => ({
+            get: async () => ({ empty: true, docs: [] })
+          }),
+          get: async () => ({ empty: true, docs: [] })
+        }),
+        limit: () => ({
+          get: async () => ({ empty: true, docs: [] })
+        }),
+        get: async () => ({ empty: true, docs: [] })
+      })
+    }),
+    credential: { cert: () => null }
+  };
+  firebaseAdmin = stubAdmin;
+  db = stubAdmin.firestore();
+}
 
 module.exports = {
   admin: firebaseAdmin,

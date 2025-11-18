@@ -196,6 +196,70 @@ class UserService {
     const user = await userRepository.findByEmail(email);
     return user ? user.toJSON() : null;
   }
+
+  /**
+   * List users with optional filters
+   *
+   * @param {Object} options - Query options
+   * @param {string} [options.role] - Filter by role
+   * @param {number} [options.limit=10] - Maximum number of results
+   * @returns {Promise<Object[]>} Array of user objects
+   */
+  async listUsers(options = {}) {
+    const users = await userRepository.list(options);
+    return users.map(user => user.toJSON());
+  }
+
+  /**
+   * Update user
+   *
+   * @param {string} userId - User ID
+   * @param {Object} updates - Fields to update
+   * @param {string} [updates.name] - User name
+   * @param {string} [updates.role] - User role
+   * @returns {Promise<Object>} Updated user object
+   * @throws {Error} If user not found or validation fails
+   */
+  async updateUser(userId, updates) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      const error = new Error('User not found');
+      error.status = 404;
+      throw error;
+    }
+
+    // Update allowed fields
+    if (updates.name !== undefined) {
+      user.name = updates.name;
+    }
+    if (updates.role !== undefined) {
+      user.role = updates.role;
+    }
+
+    // Update timestamp
+    user.touch();
+
+    const updatedUser = await userRepository.update(user);
+    return updatedUser.toJSON();
+  }
+
+  /**
+   * Delete user
+   *
+   * @param {string} userId - User ID
+   * @returns {Promise<void>}
+   * @throws {Error} If user not found
+   */
+  async deleteUser(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      const error = new Error('User not found');
+      error.status = 404;
+      throw error;
+    }
+
+    await userRepository.remove(userId);
+  }
 }
 
 // Export singleton instance

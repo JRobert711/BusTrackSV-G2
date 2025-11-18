@@ -3,9 +3,9 @@ require('dotenv').config();
 // Load configuration first
 const config = require('./config/env');
 
-// Initialize Firebase (will fail fast if credentials are missing)
-// If you want to test the server without Firebase temporarily,
-// comment out the line below. See FIREBASE_SETUP.md for details.
+// Initialize Firebase (will use stub mode if credentials are missing)
+// The db.js module will return a stub admin object if credentials are not configured,
+// allowing the server to run for frontend development without Firebase.
 let _db = null;
 let _admin = null;
 
@@ -13,9 +13,12 @@ try {
   const firebaseModule = require('./config/db');
   _db = firebaseModule.db;
   _admin = firebaseModule.admin;
+  console.log('✓ Firebase module loaded');
 } catch (error) {
-  // Firebase initialization failed - error already logged in db.js
-  process.exit(1);
+  // Firebase initialization failed - log error but continue
+  // The db.js module should handle this gracefully with stub mode
+  console.error('⚠️  Firebase initialization warning:', error.message);
+  console.warn('   Server will continue in stub mode. Some features may not work.');
 }
 
 const app = require('./app');
@@ -26,18 +29,38 @@ const NODE_ENV = config.env.NODE_ENV;
 // ============================================
 // Start Server
 // ============================================
-const server = app.listen(PORT, () => {
+// Listen on all network interfaces (0.0.0.0) to accept connections from any IP
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('='.repeat(50));
   console.log('🚀 BusTrack SV Backend Server');
   console.log('='.repeat(50));
   console.log(`Environment: ${NODE_ENV}`);
   console.log(`Port: ${PORT}`);
   console.log(`URL: http://localhost:${PORT}`);
+  console.log(`API: http://localhost:${PORT}/api/v1`);
   console.log('='.repeat(50));
   console.log('Available endpoints:');
-  console.log(`  GET  ${PORT === 80 ? '' : `http://localhost:${PORT}`}/ - Health check`);
-  console.log(`  GET  ${PORT === 80 ? '' : `http://localhost:${PORT}`}/health - Detailed health`);
+  console.log(`  GET  http://localhost:${PORT}/ - Health check`);
+  console.log(`  GET  http://localhost:${PORT}/health - Detailed health`);
+  console.log(`  POST http://localhost:${PORT}/api/v1/auth/login - Login`);
+  console.log(`  GET  http://localhost:${PORT}/api/v1/buses - Get buses`);
   console.log('='.repeat(50));
+  console.log('✅ Server is ready and listening for connections');
+  console.log(`✅ Listening on 0.0.0.0:${PORT} (all network interfaces)`);
+  console.log(`✅ Accessible from: http://localhost:${PORT} or http://127.0.0.1:${PORT}`);
+  console.log('='.repeat(50));
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use.`);
+    console.error(`   Please stop the other process or use a different port.`);
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+    process.exit(1);
+  }
 });
 
 // ============================================

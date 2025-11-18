@@ -22,13 +22,11 @@
     },
     server: {
       port: 3000,
-      host: true, // Listen on all addresses
+      host: 'localhost',
       open: true,
+      strictPort: false,
       hmr: {
-        protocol: 'ws',
-        host: 'localhost',
-        // No especificar puerto fijo, Vite usará el mismo puerto que el servidor
-        // Esto permite que funcione cuando el puerto cambia automáticamente
+        clientPort: 3000,
       },
     },
   });
