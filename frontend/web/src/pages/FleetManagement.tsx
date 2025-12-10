@@ -37,7 +37,7 @@ interface FleetManagementProps {
   user: UserType;
   buses: Bus[];
   onClose: () => void;
-  onAddBus: (bus: Bus) => void;
+  onAddBus: (bus: Bus) => Promise<void> | void;
   onDeleteBus: (busId: string) => void;
 }
 
@@ -65,7 +65,7 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
     bus.driver.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddBus = () => {
+  const handleAddBus = async () => {
     if (!newBusPlate.trim() || !newBusDriver) {
       toast.error('Error', {
         description: 'Por favor completa todos los campos'
@@ -88,16 +88,27 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
       isFavorite: false
     };
 
-    onAddBus(newBus);
-    toast.success('Bus agregado exitosamente', {
-      description: `${newBusPlate} ha sido añadido a la flota`
-    });
+    try {
+      await onAddBus(newBus);
+      toast.success('Bus agregado exitosamente', {
+        description: `${newBusPlate} ha sido añadido a la flota`
+      });
 
-    // Reset form
-    setNewBusPlate('');
-    setNewBusRoute('101');
-    setNewBusDriver('');
-    setAddDialogOpen(false);
+      // Reset form
+      setNewBusPlate('');
+      setNewBusRoute('101');
+      setNewBusDriver('');
+      setAddDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error agregando bus:', error);
+      const message =
+        error?.error ||
+        error?.message ||
+        'No se pudo agregar el bus. Revisa los datos e inténtalo de nuevo.';
+      toast.error('Error al agregar', {
+        description: message
+      });
+    }
   };
 
   const confirmDelete = (bus: Bus) => {

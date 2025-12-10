@@ -6,6 +6,12 @@ import { Label } from '../components//ui/label';
 import { Card } from '../components//ui/card';
 import { Checkbox } from '../components//ui/checkbox';
 import { api, type AuthResponse } from '../services/api';
+import { auth } from '../config/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
+
+const DEMO_ADMIN_EMAIL = import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@example.com';
+const DEMO_SUP_EMAIL = import.meta.env.VITE_DEMO_SUPERVISOR_EMAIL || 'supervisor@example.com';
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || 'demo123';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -31,6 +37,17 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const syncFirebaseAuth = async (response: AuthResponse) => {
+    if (response.firebaseCustomToken) {
+      try {
+        await signInWithCustomToken(auth, response.firebaseCustomToken);
+      } catch (firebaseError: any) {
+        console.error('Error signing in to Firebase:', firebaseError);
+        setError('No se pudo iniciar sesión en Firebase para sincronizar datos en tiempo real.');
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -38,6 +55,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
 
     try {
       const response: AuthResponse = await api.login({ email, password });
+      await syncFirebaseAuth(response);
       
       // Map API response to User interface
       const user: User = {
@@ -55,7 +73,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
     }
   };
 
-  const handleQuickLogin = async (userEmail: string, userPassword: string = 'demo123') => {
+  const handleQuickLogin = async (userEmail: string, userPassword: string = DEMO_PASSWORD) => {
     setError('');
     setLoading(true);
     setEmail(userEmail);
@@ -63,6 +81,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
 
     try {
       const response: AuthResponse = await api.login({ email: userEmail, password: userPassword });
+      await syncFirebaseAuth(response);
       
       // Map API response to User interface
       const user: User = {
@@ -224,7 +243,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                onClick={() => handleQuickLogin('admin@bustrack.com')}
+                onClick={() => handleQuickLogin(DEMO_ADMIN_EMAIL)}
                 className="w-full"
                 disabled={loading}
               >
@@ -232,7 +251,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => handleQuickLogin('supervisor@bustrack.com')}
+                onClick={() => handleQuickLogin(DEMO_SUP_EMAIL)}
                 className="w-full"
                 disabled={loading}
               >
@@ -242,7 +261,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-800">
-                <strong>Demo:</strong> Usa admin@bustrack.com o supervisor@bustrack.com con contraseña: demo123
+                <strong>Demo:</strong> Usa {DEMO_ADMIN_EMAIL} o {DEMO_SUP_EMAIL} con contraseña: {DEMO_PASSWORD}
               </p>
             </div>
 

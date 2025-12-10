@@ -6,6 +6,8 @@ import { UserProfile } from './pages/UserProfile';
 import { Settings } from './pages/Settings';
 import { toast } from './utils/toast';
 import { Toaster } from './components/ui/sonner';
+import { signOut } from 'firebase/auth';
+import { auth } from './config/firebase';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 type View = 'login' | 'register' | 'dashboard' | 'profile' | 'settings';
@@ -35,15 +37,21 @@ export default function App() {
     localStorage.setItem('bustrack_user', JSON.stringify(user));
   };
 
-  const handleRegister = (userData: RegisterData) => {
-    // In a real app, this would send data to backend
+  const handleRegister = (user: User) => {
+    setCurrentUser(user);
+    setCurrentView('dashboard');
+    localStorage.setItem('bustrack_user', JSON.stringify(user));
     toast.success('Cuenta creada exitosamente', {
-      description: 'Tu cuenta ha sido creada. Por favor inicia sesión.'
+      description: 'Tu sesión se ha iniciado.'
     });
-    setCurrentView('login');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.warn('No se pudo cerrar sesión en Firebase:', error);
+    }
     setCurrentUser(null);
     setCurrentView('login');
     localStorage.removeItem('bustrack_user');

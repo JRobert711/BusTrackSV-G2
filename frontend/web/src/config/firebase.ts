@@ -2,23 +2,29 @@
 // Replace these values with your Firebase project configuration
 // You can find these in your Firebase Console > Project Settings > General > Your apps
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
+// Helper to strip quotes/commas that may be added accidentally in .env
+const clean = (value?: string | null) => {
+  if (!value) return value;
+  return value.trim().replace(/^['"]+|['",\s]+$/g, '');
+};
+
 // Your web app's Firebase configuration
 // Get this from Firebase Console > Project Settings > General > Your apps > Web app
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: clean(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: clean(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  databaseURL: clean(import.meta.env.VITE_FIREBASE_DATABASE_URL),
+  projectId: clean(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: clean(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: clean(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: clean(import.meta.env.VITE_FIREBASE_APP_ID),
+  measurementId: clean(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID)
 };
 
 // Validate that all required Firebase config values are present
@@ -42,15 +48,37 @@ if (hasAnyFirebaseVar) {
   );
 
   if (missingVars.length > 0) {
-    console.warn(
-      `Warning: Missing or incomplete Firebase environment variables: ${missingVars.join(', ')}\n` +
-      'Firebase features may not work correctly. Please check your .env file.'
+    console.error(
+      `Firebase config faltante o incompleto: ${missingVars.join(', ')}. ` +
+      'Revisa frontend/web/.env (usa prefijo VITE_ y reinicia el dev server).'
     );
+    throw new Error(`Firebase config missing: ${missingVars.join(', ')}`);
+  }
+
+  // Log en desarrollo para depurar (valores enmascarados)
+  if (import.meta.env.DEV) {
+    const mask = (v?: string) => (v ? `${v.slice(0, 6)}***${v.slice(-4)}` : 'null');
+    const rawApiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+    const looksWrapped = rawApiKey?.trim().startsWith('"') || rawApiKey?.trim().endsWith(',') || rawApiKey?.trim().endsWith('"');
+
+    console.info('Firebase config cargado', {
+      apiKey: mask(clean(rawApiKey)),
+      projectId: clean(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+      authDomain: clean(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+      note: looksWrapped ? 'El .env parece tener comillas o comas extra; corrígelo si ves errores de API key' : undefined
+    });
   }
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase con captura de errores para no dejar la pantalla en blanco sin pista
+let app;
+try {
+  // Reutilizar la app si ya fue creada (evita app/duplicate-app en HMR)
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+} catch (error: any) {
+  console.error('Error inicializando Firebase:', error?.message || error);
+  throw error;
+}
 
 // Initialize Firebase services
 export const auth = getAuth(app);

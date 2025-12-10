@@ -16,7 +16,7 @@ import type { User as UserType } from '../../pages/LoginPage';
 interface HeaderProps {
   user: UserType;
   onNavigate: (view: 'dashboard' | 'profile' | 'settings') => void;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   onOpenMessages?: () => void;
   onOpenFleetManagement?: () => void;
   onOpenUserManagement?: () => void;

@@ -6,19 +6,25 @@
 
 // Backend API URL - configured via environment variable
 // Default to localhost for development if not set
-let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const normalizeApiBase = (raw?: string) => {
+  let base = (raw || 'http://localhost:5000/api/v1').trim();
+  // Strip trailing slash
+  base = base.replace(/\/+$/, '');
+  // If it does not end with /api/v1, append it
+  if (!/\/api(\/v1)?$/.test(base)) {
+    base = `${base}/api/v1`;
+  }
+  try {
+    new URL(base);
+  } catch (error) {
+    console.error('Invalid API_BASE_URL format:', raw);
+    base = 'http://localhost:5000/api/v1';
+    console.warn('Falling back to default:', base);
+  }
+  return base;
+};
 
-// Normalize the URL - ensure it doesn't end with a slash
-API_BASE_URL = API_BASE_URL.trim().replace(/\/$/, '');
-
-// Validate URL format
-try {
-  new URL(API_BASE_URL);
-} catch (error) {
-  console.error('Invalid API_BASE_URL format:', API_BASE_URL);
-  API_BASE_URL = 'http://localhost:5000/api/v1';
-  console.warn('Falling back to default:', API_BASE_URL);
-}
+let API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_BASE_URL);
 
 if (!import.meta.env.VITE_API_BASE_URL) {
   console.warn(
@@ -88,6 +94,37 @@ interface AuthResponse {
   };
   token: string;
   refreshToken: string;
+  firebaseCustomToken?: string | null;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  licenseNumber: string;
+  status: 'active' | 'inactive' | 'on_leave';
+  experience: number;
+  assignedBus: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: 'notification' | 'warning' | 'alert';
+  busId: string | null;
+  busPlate: string | null;
+  route: string | null;
+  fromUserId: string | null;
+  fromName: string | null;
+  fromRole: string | null;
+  content: string;
+  severity: 'info' | 'warning' | 'critical';
+  metadata: Record<string, unknown>;
+  read: boolean;
+  timestamp?: string | Date | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 class ApiService {
@@ -151,6 +188,10 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token inválido/expirado: limpiamos y propagamos
+          this.clearToken();
+        }
         throw {
           status: response.status,
           ...data,
@@ -332,6 +373,75 @@ class ApiService {
   }
 
   // ============================================
+  // Drivers
+  // ============================================
+
+  async getDrivers(params?: { status?: Driver['status']; assignedBus?: string }): Promise<{ data: Driver[] }> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    const query = queryParams.toString();
+    const endpoint = query ? `/drivers?${query}` : '/drivers';
+    return this.request<{ data: Driver[] }>(endpoint);
+  }
+
+  async createDriver(data: Omit<Driver, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ driver: Driver }> {
+    return this.request<{ driver: Driver }>('/drivers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDriver(id: string, updates: Partial<Omit<Driver, 'id'>>): Promise<{ driver: Driver }> {
+    return this.request<{ driver: Driver }>(`/drivers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteDriver(id: string): Promise<void> {
+    await this.request<void>(`/drivers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
+  // Notifications
+  // ============================================
+
+  async getNotifications(params?: { read?: boolean; type?: NotificationItem['type']; limit?: number }): Promise<{ data: NotificationItem[] }> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+    const query = queryParams.toString();
+    const endpoint = query ? `/notifications?${query}` : '/notifications';
+    return this.request<{ data: NotificationItem[] }>(endpoint);
+  }
+
+  async markNotificationRead(id: string, read = true): Promise<{ notification: NotificationItem }> {
+    return this.request<{ notification: NotificationItem }>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+      body: JSON.stringify({ read }),
+    });
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await this.request<void>(`/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============================================
   // Health Check
   // ============================================
 
@@ -341,4 +451,4 @@ class ApiService {
 }
 
 export const api = new ApiService();
-export type { Bus, BusesResponse, ApiError, AuthResponse, LoginRequest, RegisterRequest };
+export type { Bus, BusesResponse, ApiError, AuthResponse, LoginRequest, RegisterRequest, Driver, NotificationItem };

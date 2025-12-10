@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Bus, Lock, Mail, Eye, EyeOff, User, Phone, Building, Loader2 } from 'lucide-react';
+import { Bus, Lock, Mail, Eye, EyeOff, User, Phone, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api, type AuthResponse } from '../services/api';
+import { auth } from '../config/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
 
 interface RegisterPageProps {
   onBackToLogin: () => void;
-  onRegister: (userData: RegisterData) => void;
+  onRegister: (user: RegisteredUser) => void;
 }
 
 export interface RegisterData {
@@ -19,7 +22,16 @@ export interface RegisterData {
   role: 'supervisor';
 }
 
-import { api } from '../services/api';
+export interface RegisteredUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'supervisor';
+  avatar?: string;
+  department?: string;
+  phone?: string;
+  joinDate?: string;
+}
 
 export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
   const [formData, setFormData] = useState({
@@ -57,23 +69,33 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
     setLoading(true);
 
     try {
-      // Create user data
-      const userData = {
+      const response: AuthResponse = await api.register({
         email: formData.email,
         password: formData.password,
         name: formData.name,
-        phone: formData.phone,
-        role: 'supervisor' as const, // New users are supervisors by default
-      };
+        role: 'supervisor',
+      });
 
-      const response = await api.register(userData);
-
-      // api.register stores token internally; keep sessionStorage for compatibility
       if (response && response.token) {
         sessionStorage.setItem('authToken', response.token);
       }
 
-      onRegister(userData);
+      if (response.firebaseCustomToken) {
+        try {
+          await signInWithCustomToken(auth, response.firebaseCustomToken);
+        } catch (firebaseErr) {
+          console.warn('No se pudo iniciar sesión en Firebase tras el registro:', firebaseErr);
+        }
+      }
+
+      const user: RegisteredUser = {
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        role: response.user.role,
+      };
+
+      onRegister(user);
     } catch (err: any) {
       // api.request throws plain objects with a 'type' or 'status'
       if (err && (err.type === 'NETWORK_ERROR' || err.error === 'No se pudo conectar al servidor')) {

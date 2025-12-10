@@ -24,7 +24,7 @@ interface Bus {
 interface DashboardProps {
   user: User;
   onNavigate: (view: 'dashboard' | 'profile' | 'settings') => void;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 // Map API bus to Dashboard bus format
@@ -52,6 +52,17 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const setErrorMessage = (err: any, fallback: string) => {
+    const message = formatError(err, fallback);
+    setError(typeof message === 'string' ? message : fallback);
+  };
+
+  const formatError = (err: any, fallback: string) => {
+    if (err?.error && typeof err.error === 'string') return err.error;
+    if (err?.message && typeof err.message === 'string') return err.message;
+    return fallback;
+  };
+
   // Load buses from API
   useEffect(() => {
     const loadBuses = async () => {
@@ -62,7 +73,13 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
         const mappedBuses = response.data.map(mapApiBusToDashboardBus);
         setBuses(mappedBuses);
       } catch (err: any) {
-        setError(err.error || 'Error al cargar los buses');
+        if (err?.status === 401) {
+          // Sesión expirada: forzar logout y avisar
+          await onLogout();
+          setError('Tu sesión expiró. Inicia sesión nuevamente.');
+          return;
+        }
+        setErrorMessage(err, 'Error al cargar los buses');
         console.error('Error loading buses:', err);
       } finally {
         setLoading(false);
@@ -92,7 +109,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       );
     } catch (err: any) {
       console.error('Error toggling favorite:', err);
-      setError(err.error || 'Error al actualizar favorito');
+      setErrorMessage(err, 'Error al actualizar favorito');
     }
   };
 
@@ -117,7 +134,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       );
     } catch (err: any) {
       console.error('Error updating bus:', err);
-      setError(err.error || 'Error al actualizar el bus');
+      setErrorMessage(err, 'Error al actualizar el bus');
     }
   };
 
@@ -129,7 +146,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       setSelectedBus(null);
     } catch (err: any) {
       console.error('Error deleting bus:', err);
-      setError(err.error || 'Error al eliminar el bus');
+      setErrorMessage(err, 'Error al eliminar el bus');
     }
   };
 
@@ -147,7 +164,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       setBuses(prevBuses => [...prevBuses, mappedBus]);
     } catch (err: any) {
       console.error('Error adding bus:', err);
-      setError(err.error || 'Error al agregar el bus');
+      setErrorMessage(err, 'Error al agregar el bus');
     }
   };
 

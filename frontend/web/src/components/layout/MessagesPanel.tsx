@@ -5,93 +5,30 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import type { User as UserType } from '../../pages/LoginPage';
-import { api, type Bus } from '../../services/api';
+import { api, type NotificationItem } from '../../services/api';
 
-interface Message {
-  id: string;
-  type: 'notification' | 'warning';
-  busId: string;
-  busPlate: string;
-  from: string;
-  fromRole: 'admin' | 'supervisor';
-  content: string;
-  timestamp: Date;
-  read: boolean;
-}
+type Message = NotificationItem & { timestamp: Date };
 
 interface MessagesPanelProps {
   user: UserType;
   onClose: () => void;
 }
 
-// Generate notifications from bus data
-const generateNotifications = (buses: Bus[], currentUser: UserType): Message[] => {
-  const notifications: Message[] = [];
-  
-  buses.forEach((bus) => {
-    // Notification for maintenance status
-    if (bus.status === 'maintenance') {
-      notifications.push({
-        id: `notification-${bus.id}-maintenance`,
-        type: 'notification',
-        busId: bus.id,
-        busPlate: bus.licensePlate,
-        from: currentUser.name,
-        fromRole: currentUser.role,
-        content: `Bus ${bus.unitName} en mantenimiento. ${bus.driver ? `Conductor: ${bus.driver}` : 'Sin conductor asignado'}.`,
-        timestamp: new Date(bus.updatedAt),
-        read: false
-      });
-    }
-    
-    // Warning for buses parked too long (> 2 hours = 7200 seconds)
-    if (bus.status === 'parked' && bus.parkedTime > 7200) {
-      const hours = Math.floor(bus.parkedTime / 3600);
-      notifications.push({
-        id: `warning-${bus.id}-parked`,
-        type: 'warning',
-        busId: bus.id,
-        busPlate: bus.licensePlate,
-        from: currentUser.name,
-        fromRole: currentUser.role,
-        content: `Bus ${bus.unitName} estacionado por ${hours} horas. Verificar estado.`,
-        timestamp: new Date(bus.updatedAt),
-        read: false
-      });
-    }
-    
-    // Notification for buses without position
-    if (!bus.position && bus.status === 'moving') {
-      notifications.push({
-        id: `notification-${bus.id}-no-position`,
-        type: 'warning',
-        busId: bus.id,
-        busPlate: bus.licensePlate,
-        from: currentUser.name,
-        fromRole: currentUser.role,
-        content: `Bus ${bus.unitName} sin ubicación GPS. Verificar dispositivo.`,
-        timestamp: new Date(bus.updatedAt),
-        read: false
-      });
-    }
-  });
-  
-  // Sort by timestamp (most recent first)
-  return notifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-};
-
 export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch buses and generate notifications
+  // Fetch notifications from backend
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
-        const response = await api.getBuses({ pageSize: 50 });
-        const notifications = generateNotifications(response.data, user);
+        const response = await api.getNotifications({ limit: 50 });
+        const notifications = response.data.map((item) => ({
+          ...item,
+          timestamp: item.timestamp ? new Date(item.timestamp as any) : new Date()
+        }));
         setMessages(notifications);
         setError(null);
       } catch (err: any) {
@@ -124,34 +61,35 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
     return `Hace ${diffDays} días`;
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-orange-600" />;
-      case 'notification':
-        return <Bell className="h-4 w-4 text-blue-600" />;
-      default:
-        return <Bell className="h-4 w-4 text-blue-600" />;
+  const getTypeIcon = (type: string, severity: string) => {
+    if (severity === 'critical' || type === 'warning' || type === 'alert') {
+      return <AlertTriangle className="h-4 w-4 text-orange-600" />;
     }
+    return <Bell className="h-4 w-4 text-blue-600" />;
   };
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'warning':
-        return <Badge className="bg-orange-100 text-orange-800">Amonestación</Badge>;
-      case 'notification':
-        return <Badge className="bg-blue-100 text-blue-800">Notificación</Badge>;
-      default:
-        return null;
-    }
+  const getTypeBadge = (type: string, severity: string) => {
+    const label = type === 'warning' || type === 'alert' ? 'Alerta' : 'Notificación';
+    const className =
+      severity === 'critical'
+        ? 'bg-red-100 text-red-800'
+        : type === 'warning' || type === 'alert'
+          ? 'bg-orange-100 text-orange-800'
+          : 'bg-blue-100 text-blue-800';
+    return <Badge className={className}>{label}</Badge>;
   };
 
-  const markAsRead = (messageId: string) => {
+  const markAsRead = async (messageId: string) => {
     setMessages(prev =>
       prev.map(msg =>
         msg.id === messageId ? { ...msg, read: true } : msg
       )
     );
+    try {
+      await api.markNotificationRead(messageId, true);
+    } catch (err) {
+      console.error('Error marking notification as read', err);
+    }
   };
 
   const MessageItem = ({ message }: { message: Message }) => (
@@ -163,13 +101,13 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
     >
       <div className="flex gap-3">
         <div className="mt-1">
-          {getTypeIcon(message.type)}
+          {getTypeIcon(message.type, message.severity)}
         </div>
         <div className="flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              {getTypeBadge(message.type)}
-              <Badge variant="outline">{message.busPlate}</Badge>
+              {getTypeBadge(message.type, message.severity)}
+              {message.busPlate && <Badge variant="outline">{message.busPlate}</Badge>}
               {!message.read && (
                 <Badge className="bg-red-500 text-white">Nuevo</Badge>
               )}
@@ -183,9 +121,9 @@ export function MessagesPanel({ user, onClose }: MessagesPanelProps) {
           
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <User className="h-3 w-3" />
-            <span>{message.from}</span>
+            <span>{message.fromName || 'Sistema'}</span>
             <span>•</span>
-            <span>{message.fromRole === 'admin' ? 'Administrador' : 'Supervisor'}</span>
+            <span>{message.fromRole === 'admin' ? 'Administrador' : message.fromRole || 'Alerta'}</span>
           </div>
         </div>
       </div>

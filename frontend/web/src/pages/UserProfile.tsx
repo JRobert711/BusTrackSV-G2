@@ -17,7 +17,12 @@ interface UserProfileProps {
 
 export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState(user);
+  const [editedUser, setEditedUser] = useState({
+    ...user,
+    phone: user.phone ?? '',
+    department: user.department ?? '',
+    joinDate: user.joinDate ?? ''
+  });
 
   const getInitials = (name: string) => {
     return name
@@ -48,7 +53,12 @@ export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
   };
 
   const handleCancel = () => {
-    setEditedUser(user);
+    setEditedUser({
+      ...user,
+      phone: user.phone ?? '',
+      department: user.department ?? '',
+      joinDate: user.joinDate ?? ''
+    });
     setIsEditing(false);
   };
 
@@ -104,10 +114,19 @@ export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
                 </div>
                 <p className="text-muted-foreground mb-1">{user.email}</p>
                 <p className="text-muted-foreground">{user.department}</p>
-                <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>Miembro desde {new Date(user.joinDate).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </div>
+                {user.joinDate && (
+                  <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Miembro desde{' '}
+                      {new Date(user.joinDate).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </Card>

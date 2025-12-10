@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, UserPlus, Trash2, Edit, Search, Users, User } from 'lucide-react';
 import { Button } from '../components//ui/button';
 import { Card } from '../components//ui/card';
@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components//ui/tabs';
 import { toast } from '../utils/toast';
 import type { User as UserType } from './LoginPage';
+import { api, type Driver } from '../services/api';
 
 interface UserManagementProps {
   user: UserType;
@@ -37,103 +38,19 @@ interface SupervisorUser {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  department: string;
-  status: 'active' | 'inactive';
-  joinDate: string;
+  role: 'admin' | 'supervisor';
+  phone?: string;
+  department?: string;
+  status?: 'active' | 'inactive';
+  joinDate?: string;
 }
-
-interface Driver {
-  id: string;
-  name: string;
-  phone: string;
-  licenseNumber: string;
-  status: 'active' | 'inactive' | 'on_leave';
-  experience: number;
-  assignedBus?: string;
-}
-
-const mockSupervisors: SupervisorUser[] = [
-  {
-    id: '2',
-    name: 'María Supervisora',
-    email: 'supervisor@bustrack.com',
-    phone: '+506 8888-0002',
-    department: 'Operaciones',
-    status: 'active',
-    joinDate: '2021-03-20'
-  },
-  {
-    id: '3',
-    name: 'Pedro Ramírez',
-    email: 'pedro.ramirez@bustrack.com',
-    phone: '+506 8888-0003',
-    department: 'Logística',
-    status: 'active',
-    joinDate: '2022-05-15'
-  },
-  {
-    id: '4',
-    name: 'Laura Sánchez',
-    email: 'laura.sanchez@bustrack.com',
-    phone: '+506 8888-0004',
-    department: 'Mantenimiento',
-    status: 'inactive',
-    joinDate: '2023-01-10'
-  },
-];
-
-const mockDrivers: Driver[] = [
-  {
-    id: 'd1',
-    name: 'Carlos Rodríguez',
-    phone: '+506 7777-0001',
-    licenseNumber: 'DL-001234',
-    status: 'active',
-    experience: 8,
-    assignedBus: 'BUS-001'
-  },
-  {
-    id: 'd2',
-    name: 'José López',
-    phone: '+506 7777-0002',
-    licenseNumber: 'DL-001235',
-    status: 'active',
-    experience: 5,
-    assignedBus: 'BUS-003'
-  },
-  {
-    id: 'd3',
-    name: 'Ana Martínez',
-    phone: '+506 7777-0003',
-    licenseNumber: 'DL-001236',
-    status: 'active',
-    experience: 6,
-    assignedBus: 'BUS-004'
-  },
-  {
-    id: 'd4',
-    name: 'Luis Hernández',
-    phone: '+506 7777-0004',
-    licenseNumber: 'DL-001237',
-    status: 'on_leave',
-    experience: 10,
-  },
-  {
-    id: 'd5',
-    name: 'Roberto Silva',
-    phone: '+506 7777-0005',
-    licenseNumber: 'DL-001238',
-    status: 'active',
-    experience: 4,
-  },
-];
 
 export function UserManagement({ user, onClose }: UserManagementProps) {
-  const [supervisors, setSupervisors] = useState<SupervisorUser[]>(mockSupervisors);
-  const [drivers, setDrivers] = useState<Driver[]>(mockDrivers);
+  const [supervisors, setSupervisors] = useState<SupervisorUser[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState('supervisors');
+  const [loading, setLoading] = useState(false);
 
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -145,64 +62,139 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
   const [editForm, setEditForm] = useState<any>({});
   const [addForm, setAddForm] = useState<any>({});
 
-  const handleDeleteUser = () => {
-    if (!selectedUser) return;
-
-    if (selectedTab === 'supervisors') {
-      setSupervisors(prev => prev.filter(s => s.id !== selectedUser.id));
-      toast.error('Supervisor eliminado', { description: `${selectedUser.name} ha sido eliminado del sistema` });
-    } else {
-      setDrivers(prev => prev.filter(d => d.id !== selectedUser.id));
-      toast.error('Conductor eliminado', { description: `${selectedUser.name} ha sido eliminado del sistema` });
+  const loadSupervisors = async () => {
+    try {
+      const response = await api.getUsers();
+      setSupervisors(
+        response.data.map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          status: 'active',
+          joinDate: u.createdAt ? u.createdAt.split('T')[0] : '',
+          phone: '',
+          department: ''
+        }))
+      );
+    } catch (err: any) {
+      console.error('Error loading supervisors', err);
+      toast.error('Error al cargar supervisores', { description: err.error || 'Revisa la conexión al backend' });
     }
-
-    setDeleteDialogOpen(false);
-    setSelectedUser(null);
   };
 
-  const handleEditUser = () => {
-    if (!selectedUser) return;
-
-    if (selectedTab === 'supervisors') {
-      setSupervisors(prev => prev.map(s => 
-        s.id === selectedUser.id ? { ...s, ...editForm } : s
-      ));
-      toast.success('Supervisor actualizado', { description: 'Los cambios se han guardado correctamente' });
-    } else {
-      setDrivers(prev => prev.map(d => 
-        d.id === selectedUser.id ? { ...d, ...editForm } : d
-      ));
-      toast.success('Conductor actualizado', { description: 'Los cambios se han guardado correctamente' });
+  const loadDrivers = async () => {
+    try {
+      const response = await api.getDrivers();
+      setDrivers(response.data);
+    } catch (err: any) {
+      console.error('Error loading drivers', err);
+      toast.error('Error al cargar conductores', { description: err.error || 'Revisa la conexión al backend' });
     }
-
-    setEditDialogOpen(false);
-    setSelectedUser(null);
-    setEditForm({});
   };
 
-  const handleAddUser = () => {
-    if (selectedTab === 'supervisors') {
-      const newSupervisor: SupervisorUser = {
-        id: `s${supervisors.length + 1}`,
-        ...addForm,
-        status: 'active',
-        joinDate: new Date().toISOString().split('T')[0]
-      };
-      setSupervisors(prev => [...prev, newSupervisor]);
-      toast.success('Supervisor agregado', { description: `${addForm.name} ha sido agregado al sistema` });
-    } else {
-      const newDriver: Driver = {
-        id: `d${drivers.length + 1}`,
-        ...addForm,
-        status: 'active',
-        experience: parseInt(addForm.experience) || 0
-      };
-      setDrivers(prev => [...prev, newDriver]);
-      toast.success('Conductor agregado', { description: `${addForm.name} ha sido agregado al sistema` });
-    }
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([loadSupervisors(), loadDrivers()]).finally(() => setLoading(false));
+  }, []);
 
-    setAddDialogOpen(false);
-    setAddForm({});
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    setLoading(true);
+
+    try {
+      if (selectedTab === 'supervisors') {
+        await api.deleteUser(selectedUser.id);
+        await loadSupervisors();
+        toast.success('Supervisor eliminado', { description: `${selectedUser.name} ha sido eliminado del sistema` });
+      } else {
+        await api.deleteDriver(selectedUser.id);
+        await loadDrivers();
+        toast.success('Conductor eliminado', { description: `${selectedUser.name} ha sido eliminado del sistema` });
+      }
+    } catch (err: any) {
+      console.error('Error deleting user/driver', err);
+      toast.error('No se pudo eliminar', { description: err.error || 'Revisa permisos o conexión' });
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (!selectedUser) return;
+    setLoading(true);
+
+    try {
+      if (selectedTab === 'supervisors') {
+        const updates: { name?: string; role?: 'admin' | 'supervisor' } = {};
+        if (editForm.name) updates.name = editForm.name;
+        if (editForm.role) updates.role = editForm.role;
+        await api.updateUser(selectedUser.id, updates);
+        await loadSupervisors();
+        toast.success('Supervisor actualizado', { description: 'Los cambios se han guardado correctamente' });
+      } else {
+        const updates: Partial<Omit<Driver, 'id'>> = {};
+        if (editForm.name) updates.name = editForm.name;
+        if (editForm.phone !== undefined) updates.phone = editForm.phone;
+        if (editForm.licenseNumber) updates.licenseNumber = editForm.licenseNumber;
+        if (editForm.experience !== undefined) updates.experience = Number(editForm.experience);
+        if (editForm.status) updates.status = editForm.status;
+        if (editForm.assignedBus !== undefined) updates.assignedBus = editForm.assignedBus;
+        await api.updateDriver(selectedUser.id, updates);
+        await loadDrivers();
+        toast.success('Conductor actualizado', { description: 'Los cambios se han guardado correctamente' });
+      }
+    } catch (err: any) {
+      console.error('Error updating user/driver', err);
+      toast.error('No se pudo actualizar', { description: err.error || 'Revisa permisos o conexión' });
+    } finally {
+      setLoading(false);
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+      setEditForm({});
+    }
+  };
+
+  const handleAddUser = async () => {
+    setLoading(true);
+    try {
+      if (selectedTab === 'supervisors') {
+        if (!addForm.email || !addForm.password) {
+          toast.error('Email y contraseña son obligatorios para crear un supervisor');
+          setLoading(false);
+          return;
+        }
+        await api.createUser({
+          email: addForm.email,
+          name: addForm.name,
+          password: addForm.password,
+          role: (addForm.role as 'admin' | 'supervisor') || 'supervisor'
+        });
+        await loadSupervisors();
+        toast.success('Supervisor agregado', { description: `${addForm.name} ha sido agregado al sistema` });
+      } else {
+        const newDriver: Omit<Driver, 'id' | 'createdAt' | 'updatedAt'> = {
+          name: addForm.name,
+          phone: addForm.phone || '',
+          licenseNumber: addForm.licenseNumber,
+          status: (addForm.status as Driver['status']) || 'active',
+          experience: Number(addForm.experience) || 0,
+          assignedBus: addForm.assignedBus || null
+        };
+        await api.createDriver(newDriver);
+        await loadDrivers();
+        toast.success('Conductor agregado', { description: `${addForm.name} ha sido agregado al sistema` });
+      }
+    } catch (err: any) {
+      console.error('Error creating user/driver', err);
+      toast.error('No se pudo crear', { description: err.error || 'Revisa validaciones o conexión' });
+    } finally {
+      setLoading(false);
+      setAddDialogOpen(false);
+      setAddForm({});
+    }
   };
 
   const openEditDialog = (user: SupervisorUser | Driver) => {
@@ -219,7 +211,7 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
   const filteredSupervisors = supervisors.filter(s =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.department.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.department || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredDrivers = drivers.filter(d =>
@@ -290,26 +282,26 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
                       <h4 className="font-medium">{supervisor.name}</h4>
                       <Badge
                         className={
-                          supervisor.status === 'active'
+                          (supervisor.status || 'active') === 'active'
                             ? 'bg-green-100 text-green-800 border-green-200'
                             : 'bg-gray-100 text-gray-800 border-gray-200'
                         }
                       >
-                        {supervisor.status === 'active' ? 'Activo' : 'Inactivo'}
+                        {(supervisor.status || 'active') === 'active' ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{supervisor.email}</p>
-                    <p className="text-sm text-muted-foreground">{supervisor.phone}</p>
+                    <p className="text-sm text-muted-foreground">Rol: {supervisor.role === 'admin' ? 'Administrador' : 'Supervisor'}</p>
                   </div>
                 </div>
                 <div className="space-y-1 text-sm mb-3">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Departamento:</span>
-                    <span className="font-medium">{supervisor.department}</span>
+                    <span className="font-medium">{supervisor.department || 'N/D'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Fecha de ingreso:</span>
-                    <span className="font-medium">{supervisor.joinDate}</span>
+                    <span className="font-medium">{supervisor.joinDate || 'N/D'}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -433,45 +425,21 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
                   <Input
                     type="email"
                     value={editForm.email || ''}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    disabled
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Teléfono</Label>
-                  <Input
-                    value={editForm.phone || ''}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Departamento</Label>
+                  <Label>Rol</Label>
                   <Select
-                    value={editForm.department || ''}
-                    onValueChange={(value) => setEditForm({ ...editForm, department: value })}
+                    value={editForm.role || 'supervisor'}
+                    onValueChange={(value) => setEditForm({ ...editForm, role: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Operaciones">Operaciones</SelectItem>
-                      <SelectItem value="Logística">Logística</SelectItem>
-                      <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                      <SelectItem value="Seguridad">Seguridad</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Estado</Label>
-                  <Select
-                    value={editForm.status || ''}
-                    onValueChange={(value) => setEditForm({ ...editForm, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="inactive">Inactivo</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -560,27 +528,26 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Teléfono</Label>
+                  <Label>Contraseña</Label>
                   <Input
-                    value={addForm.phone || ''}
-                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-                    placeholder="+506 8888-0000"
+                    type="password"
+                    value={addForm.password || ''}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    placeholder="********"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Departamento</Label>
+                  <Label>Rol</Label>
                   <Select
-                    value={addForm.department || ''}
-                    onValueChange={(value) => setAddForm({ ...addForm, department: value })}
+                    value={addForm.role || 'supervisor'}
+                    onValueChange={(value) => setAddForm({ ...addForm, role: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona departamento" />
+                      <SelectValue placeholder="Selecciona rol" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Operaciones">Operaciones</SelectItem>
-                      <SelectItem value="Logística">Logística</SelectItem>
-                      <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                      <SelectItem value="Seguridad">Seguridad</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
