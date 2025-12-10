@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Bus, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../components//ui/button';
-import { Input } from '../components//ui/input';
-import { Label } from '../components//ui/label';
-import { Card } from '../components//ui/card';
-import { Checkbox } from '../components//ui/checkbox';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card } from '../components/ui/card';
+import { Checkbox } from '../components/ui/checkbox';
 import { api, type AuthResponse } from '../services/api';
 import { auth } from '../config/firebase';
 import { signInWithCustomToken } from 'firebase/auth';

@@ -1,34 +1,79 @@
 /**
- * Firestore Emulator Setup for Integration Tests
+ * Firebase Setup for Integration Tests
  *
- * Configures Firestore Emulator connection for testing.
+ * Configures Firebase connection for testing using real Firebase credentials.
+ * IMPORTANT: Tests will run against the actual Firebase project configured
+ * in environment variables. Make sure to use a test/development project.
  */
 
 const admin = require('firebase-admin');
-
-// Firestore Emulator configuration
-// Use 127.0.0.1:8080 to match Firebase Emulator default and avoid IPv6/IPv4 issues
-const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+const path = require('path');
+const fs = require('fs');
 
 /**
- * Initialize Firebase Admin for testing with emulator
+ * Initialize Firebase Admin for testing with real Firebase
  */
 function initializeTestFirebase() {
   // Check if already initialized
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      projectId: 'bustrack-test',
-      credential: admin.credential.applicationDefault()
-    });
+  if (admin.apps.length > 0) {
+    return {
+      admin,
+      db: admin.firestore()
+    };
   }
 
-  const db = admin.firestore();
-  
-  // Connect to emulator
-  db.settings({
-    host: EMULATOR_HOST,
-    ssl: false
+  // Load credentials from environment (same as production)
+  const {
+    FIREBASE_SERVICE_ACCOUNT_BASE64,
+    GOOGLE_APPLICATION_CREDENTIALS,
+    FIREBASE_PROJECT_ID,
+    FIREBASE_CLIENT_EMAIL,
+    FIREBASE_PRIVATE_KEY
+  } = process.env;
+
+  let serviceAccount = null;
+
+  // Method 1: Base64-encoded service account
+  if (FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    try {
+      const decodedJson = Buffer.from(FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8');
+      serviceAccount = JSON.parse(decodedJson);
+    } catch (error) {
+      throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_BASE64: Unable to decode or parse JSON');
+    }
+  } else if (GOOGLE_APPLICATION_CREDENTIALS) {
+    // Method 2: Path to service account JSON file
+    const credentialsPath = path.resolve(process.cwd(), GOOGLE_APPLICATION_CREDENTIALS);
+    if (!fs.existsSync(credentialsPath)) {
+      throw new Error(`Service account file not found: ${credentialsPath}`);
+    }
+    const credentialsContent = fs.readFileSync(credentialsPath, 'utf8');
+    serviceAccount = JSON.parse(credentialsContent);
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+  } else if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+    // Method 3: Plain env vars
+    serviceAccount = {
+      project_id: FIREBASE_PROJECT_ID,
+      client_email: FIREBASE_CLIENT_EMAIL,
+      private_key: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    };
+  } else {
+    throw new Error(
+      'Firebase credentials not configured for tests. ' +
+      'Set FIREBASE_SERVICE_ACCOUNT_BASE64, GOOGLE_APPLICATION_CREDENTIALS, ' +
+      'or FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY'
+    );
+  }
+
+  // Initialize Firebase Admin
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: serviceAccount.project_id
   });
+
+  const db = admin.firestore();
 
   return { admin, db };
 }

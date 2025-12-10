@@ -72,12 +72,7 @@ const config = {
     GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
 
     // Firebase Database URL (optional, depends on your Firebase setup)
-    FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL || null,
-
-    // Firebase Emulator Configuration (development only)
-    // Set FIRESTORE_EMULATOR_HOST to override default (127.0.0.1:8080)
-    FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST || null,
-    FIREBASE_EMULATOR_HOST: process.env.FIREBASE_EMULATOR_HOST || null
+    FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL || null
   },
 
   // ============================================

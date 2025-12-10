@@ -1,11 +1,12 @@
 /**
  * BusRepository Integration Tests
  *
- * Tests BusRepository against Firestore Emulator.
+ * Tests BusRepository against real Firebase Firestore.
  * 
  * Prerequisites:
- * - Firestore Emulator must be running
- * - Start with: firebase emulators:start --only firestore
+ * - Firebase credentials must be configured in environment variables
+ * - Tests will run against the actual Firebase project
+ * - WARNING: Tests may modify data in the configured Firebase project
  */
 
 const { initializeTestFirebase, clearCollection } = require('./setup');

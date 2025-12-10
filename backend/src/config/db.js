@@ -1,9 +1,10 @@
 /**
  * Firebase Admin SDK Configuration
  *
- * Initializes Firebase Admin in one of two ways:
+ * Initializes Firebase Admin in one of three ways:
  * 1. FIREBASE_SERVICE_ACCOUNT_BASE64 - Base64 encoded service account JSON
  * 2. GOOGLE_APPLICATION_CREDENTIALS - Path to service account JSON file
+ * 3. FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY - Plain env vars
  *
  * Fails fast with clear error if credentials are not configured.
  */
@@ -13,8 +14,6 @@ const path = require('path');
 const fs = require('fs');
 const config = require('./env');
 
-// Set Firebase Emulator host in development mode ONLY if no credentials are provided
-// This must happen before any Firebase Admin SDK calls
 const {
   FIREBASE_SERVICE_ACCOUNT_BASE64,
   GOOGLE_APPLICATION_CREDENTIALS,
@@ -22,19 +21,6 @@ const {
   FIREBASE_CLIENT_EMAIL,
   FIREBASE_PRIVATE_KEY
 } = config.firebase;
-
-// Only use emulator if we don't have credentials
-const hasCredentials = FIREBASE_SERVICE_ACCOUNT_BASE64 || GOOGLE_APPLICATION_CREDENTIALS;
-
-if (config.env.IS_DEVELOPMENT && !process.env.FIRESTORE_EMULATOR_HOST && !hasCredentials) {
-  // Default to 127.0.0.1:8080 to match Firebase Emulator default output
-  // This avoids IPv6/IPv4 resolution issues on Windows
-  // Priority: FIREBASE_EMULATOR_HOST env var > default 127.0.0.1:8080
-  const emulatorHost = process.env.FIREBASE_EMULATOR_HOST || '127.0.0.1:8080';
-  process.env.FIRESTORE_EMULATOR_HOST = emulatorHost;
-  console.log(`✓ Configured Firestore emulator at ${emulatorHost}`);
-  console.log(`  (Set FIRESTORE_EMULATOR_HOST env var to override)`);
-}
 
 /**
  * Initialize Firebase Admin SDK
@@ -96,38 +82,7 @@ function initializeFirebase() {
     };
     console.log('✓ Firebase credentials loaded from FIREBASE_* env vars');
   } else {
-    // No credentials provided - check if we're using emulator
-    if (config.env.IS_DEVELOPMENT && process.env.FIRESTORE_EMULATOR_HOST) {
-      // Using emulator - initialize with minimal config (no credentials needed)
-      console.log('✓ Using Firestore Emulator (no credentials required)');
-      try {
-        if (admin.apps.length === 0) {
-          admin.initializeApp({
-            projectId: FIREBASE_PROJECT_ID || 'local-emulator',
-            credential: admin.credential.applicationDefault()
-          });
-          console.log('✓ Firebase Admin SDK initialized for emulator');
-        }
-        return admin;
-      } catch (error) {
-        // If applicationDefault() fails, use a dummy credential
-        console.warn('⚠️  Could not use applicationDefault credentials, using dummy credential for emulator');
-        if (admin.apps.length === 0) {
-          admin.initializeApp({
-            projectId: FIREBASE_PROJECT_ID || 'local-emulator',
-            credential: admin.credential.cert({
-              projectId: FIREBASE_PROJECT_ID || 'local-emulator',
-              privateKey: '-----BEGIN PRIVATE KEY-----\nMIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA0dummy\n-----END PRIVATE KEY-----\n',
-              clientEmail: `${FIREBASE_PROJECT_ID || 'local-emulator'}@dummy.iam.gserviceaccount.com`
-            })
-          });
-          console.log('✓ Firebase Admin SDK initialized with dummy credential for emulator');
-        }
-        return admin;
-      }
-    }
-
-    // No credentials and no emulator - return stub
+    // No credentials provided - return stub
     const warnMessage = `
 Firebase Admin credentials are not configured. The server will run in "no-Firebase" mode.
 Some features that depend on Firestore will be disabled or will throw at runtime.
@@ -135,7 +90,7 @@ Some features that depend on Firestore will be disabled or will throw at runtime
 Provide one of the following to enable Firebase:
   - FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON)
   - GOOGLE_APPLICATION_CREDENTIALS (path to JSON file)
-  - Or use Firebase Emulator in development (FIRESTORE_EMULATOR_HOST)
+  - FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY (plain env vars)
 
 See backend/.env.example for examples.
 `.trim();
