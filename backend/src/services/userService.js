@@ -10,6 +10,7 @@ const { userRepository } = require('./userRepository');
 const { jwtUtil } = require('../utils/jwt');
 const { validatePassword, validateEmail } = require('../utils/validation');
 const User = require('../models/User');
+const { admin } = require('../config/db');
 
 /**
  * UserService Class
@@ -87,12 +88,14 @@ class UserService {
 
     const token = jwtUtil.signAccess(tokenPayload);
     const refreshToken = jwtUtil.signRefresh(tokenPayload);
+    const firebaseCustomToken = await this._generateFirebaseCustomToken(tokenPayload);
 
     // Return user (safe fields only) and tokens
     return {
       user: createdUser.toJSON(),
       token,
-      refreshToken
+      refreshToken,
+      firebaseCustomToken
     };
   }
 
@@ -133,12 +136,14 @@ class UserService {
 
     const token = jwtUtil.signAccess(tokenPayload);
     const refreshToken = jwtUtil.signRefresh(tokenPayload);
+    const firebaseCustomToken = await this._generateFirebaseCustomToken(tokenPayload);
 
     // Return user (safe fields only) and tokens
     return {
       user: user.toJSON(),
       token,
-      refreshToken
+      refreshToken,
+      firebaseCustomToken
     };
   }
 
@@ -259,6 +264,24 @@ class UserService {
     }
 
     await userRepository.remove(userId);
+  }
+
+  /**
+   * Generate Firebase custom token to allow frontend auth with Firebase Auth.
+   * If Firebase is not configured, returns null and keeps login working.
+   */
+  async _generateFirebaseCustomToken(payload) {
+    try {
+      if (!admin || typeof admin.auth !== 'function') {
+        console.warn('Firebase Admin not configured, skipping custom token issuance');
+        return null;
+      }
+      const customClaims = { role: payload.role };
+      return await admin.auth().createCustomToken(String(payload.id), customClaims);
+    } catch (error) {
+      console.warn('Failed to create Firebase custom token:', error.message);
+      return null;
+    }
   }
 }
 

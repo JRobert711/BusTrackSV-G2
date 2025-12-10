@@ -1,14 +1,6 @@
 // Carga variables desde .env si existe y desde el entorno del sistema.
 require('dotenv').config();
 
-module.exports = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: process.env.PORT || 5000,
-  JWT_SECRET: process.env.JWT_SECRET || 'bustrack_secret_key_2024',
-  CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-};
-
 /**
  * Parse comma-separated values into an array
  * @param {string} value - CSV string
@@ -66,6 +58,13 @@ const config = {
   // Firebase Configuration
   // ============================================
   firebase: {
+    // Plain credentials (convenient for local dev / CI secrets)
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || null,
+    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL || null,
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY
+      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      : null,
+
     // Base64-encoded service account JSON (preferred for production/deployment)
     FIREBASE_SERVICE_ACCOUNT_BASE64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || null,
 

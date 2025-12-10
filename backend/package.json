@@ -17,7 +17,11 @@
     "test:coverage": "jest --coverage --runInBand",
     "test:unit": "jest tests/unit --runInBand",
     "test:integration": "jest tests/integration --runInBand",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "runseed": "node scripts/runseed.js",
+    "verify-firebase": "node scripts/verify-firebase.js",
+    "diagnose-firebase": "node scripts/diagnose-firebase.js",
+    "test-firestore": "node scripts/test-firestore-connection.js"
   },
   "keywords": [
     "bustrack",
