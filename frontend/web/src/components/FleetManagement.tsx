@@ -106,8 +106,8 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
       route: newBusRoute,
       status: 'parked',
       position: {
-        lat: 20 + Math.random() * 60,
-        lng: 15 + Math.random() * 70
+        lat: 13.6 + Math.random() * 0.6,      // El Salvador: 13.6-14.2
+        lng: -89.4 + Math.random() * 0.8      // El Salvador: -89.4 to -88.6
       },
       driver: newBusDriver,
       parkedTime: 0,

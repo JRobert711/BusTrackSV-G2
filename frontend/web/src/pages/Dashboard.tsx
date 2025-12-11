@@ -121,6 +121,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [selectingRoutePoints, setSelectingRoutePoints] = useState(false);
   const [routePoints, setRoutePoints] = useState<Position[]>([]);
   const [routeNameForPoints, setRouteNameForPoints] = useState('');
+  const [transitionLines, setTransitionLines] = useState<Array<{ busId: string; from: Position; to: Position; coordinates?: Position[] }>>([]);
 
   // Load buses from backend on mount
   useEffect(() => {
@@ -244,10 +245,10 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       }
     };
 
-    // Actualizar inmediatamente y luego cada 3 segundos
+    // Actualizar inmediatamente y luego cada 10 segundos
     // Esto sincroniza las posiciones enviadas por el conductor
     updateBusPositions();
-    const pollingInterval = setInterval(updateBusPositions, 3000);
+    const pollingInterval = setInterval(updateBusPositions, 10000);
 
     return () => {
       isActive = false;
@@ -382,6 +383,80 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
 
       const response = await api.updateBus(busId, apiUpdates);
       
+      // If route was updated, recalculate route coordinates and create transition line
+      let newRouteCoordinates: Position[] | undefined = undefined;
+      let newTransitionLine: { busId: string; from: Position; to: Position } | undefined = undefined;
+
+      if (updates.route) {
+        console.log('Route was updated, recalculating coordinates for route:', updates.route);
+        try {
+          const bus = buses.find(b => b.id === busId);
+          
+          // Try to get the route from localStorage
+          let start: Position | null = null;
+          let end: Position | null = null;
+          
+          try {
+            const savedRoutes = localStorage.getItem('bustrack_routes');
+            if (savedRoutes) {
+              const routes = JSON.parse(savedRoutes);
+              const selectedRoute = routes.find((r: any) => r.name === updates.route);
+              if (selectedRoute && selectedRoute.startPoint && selectedRoute.endPoint) {
+                start = selectedRoute.startPoint;
+                end = selectedRoute.endPoint;
+                console.log('Found route in localStorage:', selectedRoute);
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to get route from localStorage:', err);
+          }
+          
+          // Fallback to STOPS if route not found in localStorage
+          if (!start || !end) {
+            if (STOPS.length >= 2) {
+              start = STOPS[0].position;
+              end = STOPS[1].position;
+              console.log('Using fallback STOPS for route');
+            } else {
+              console.warn('No valid route start/end points found');
+              throw new Error('No valid route coordinates');
+            }
+          }
+          
+          newRouteCoordinates = await fetchDirections(start, end);
+          console.log('New route coordinates:', newRouteCoordinates);
+
+          // Create transition line from current position to new route start
+          // Use fetchDirections to make it follow the streets properly
+          if (bus) {
+            try {
+              const transitionCoords = await fetchDirections(bus.position, start);
+              newTransitionLine = {
+                busId: busId,
+                from: bus.position,
+                to: start,
+                coordinates: transitionCoords // Add the actual path coordinates
+              };
+              console.log('Created transition line with coordinates:', newTransitionLine);
+              console.log('Bus position:', bus.position);
+              console.log('Route start point:', start);
+            } catch (err) {
+              console.warn('Failed to fetch transition line directions:', err);
+              // Fallback to direct line
+              newTransitionLine = {
+                busId: busId,
+                from: bus.position,
+                to: start
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to recalculate route coordinates:', err);
+        }
+      } else {
+        console.log('No route update detected. updates.route:', updates.route);
+      }
+      
       setBuses(prevBuses =>
         prevBuses.map(bus =>
           bus.id === busId
@@ -389,11 +464,24 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
                 ...bus, 
                 ...response.bus, 
                 position: response.bus.position || bus.position,
-                driver: response.bus.driver || 'Sin asignar' // Convert null to string
+                driver: response.bus.driver || 'Sin asignar', // Convert null to string
+                routeCoordinates: newRouteCoordinates !== undefined ? newRouteCoordinates : bus.routeCoordinates,
+                currentPositionInRoute: newRouteCoordinates ? 0 : bus.currentPositionInRoute
               } as Bus
             : bus
         )
       );
+
+      // Update transition lines
+      if (newTransitionLine) {
+        console.log('Setting transition line in state:', newTransitionLine);
+        setTransitionLines([newTransitionLine]);
+        // Auto-clear transition line after 10 seconds (increased from 3 to give more time to see)
+        setTimeout(() => {
+          console.log('Clearing transition line after timeout');
+          setTransitionLines([]);
+        }, 10000);
+      }
       
       toast.success('Bus actualizado', {
         description: `Se actualizó ${response.bus.licensePlate}`
@@ -557,6 +645,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
                   onMapClick={selectingRoutePoints ? handleMapClick : undefined}
                   isSelectingRoutePoints={selectingRoutePoints}
                   routePoints={routePoints}
+                  transitionLines={transitionLines}
                 />
               </>
             )}
@@ -631,6 +720,22 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
               <Button
                 onClick={() => {
                   if (routePoints.length === 2 && routeNameForPoints.trim()) {
+                    // Guardar la ruta en localStorage
+                    try {
+                      const existingRoutes = JSON.parse(localStorage.getItem('bustrack_routes') || '[]');
+                      const newRoute = {
+                        id: `route_${Date.now()}`,
+                        name: routeNameForPoints.trim(),
+                        startPoint: routePoints[0],
+                        endPoint: routePoints[1],
+                        createdAt: new Date().toISOString()
+                      };
+                      existingRoutes.push(newRoute);
+                      localStorage.setItem('bustrack_routes', JSON.stringify(existingRoutes));
+                    } catch (error) {
+                      console.error('Error saving route to localStorage:', error);
+                    }
+
                     toast.success('Ruta creada exitosamente', {
                       description: `${routeNameForPoints.trim()} ha sido agregada`
                     });
