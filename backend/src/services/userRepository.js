@@ -68,16 +68,6 @@ class IUserRepository {
 class FirestoreUserRepository extends IUserRepository {
   constructor() {
     super();
-    // Check if db is available (not a stub)
-    if (!db || typeof db.collection !== 'function') {
-      throw new Error(
-        'Firestore is not properly initialized. Please check your Firebase configuration.\n' +
-        'Make sure:\n' +
-        '1. GOOGLE_APPLICATION_CREDENTIALS is set in your .env file\n' +
-        '2. The service account file exists and is valid\n' +
-        '3. The service account has permissions for Firestore'
-      );
-    }
     this.collection = db.collection(User.collection());
   }
 
@@ -205,23 +195,6 @@ class FirestoreUserRepository extends IUserRepository {
       // Re-throw known errors (like 409 Conflict)
       if (error.status) {
         throw error;
-      }
-
-      // Handle Firebase authentication errors with more helpful messages
-      if (error.code === 16 || error.message.includes('UNAUTHENTICATED') || 
-          error.message.includes('invalid authentication credentials')) {
-        console.error('Firebase authentication error in create:', error);
-        const authError = new Error(
-          'Firebase authentication failed. Please verify:\n' +
-          '1. The service account has permissions for Firestore\n' +
-          '2. Firestore is enabled in your Firebase project\n' +
-          '3. The credentials are valid and not expired\n' +
-          '4. The project ID matches your Firebase project\n\n' +
-          `Original error: ${error.message}`
-        );
-        authError.status = 500;
-        authError.code = 'FIREBASE_AUTH_ERROR';
-        throw authError;
       }
 
       // Wrap Firestore errors as 500
