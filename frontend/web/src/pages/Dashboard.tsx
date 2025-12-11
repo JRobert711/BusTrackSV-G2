@@ -6,6 +6,10 @@ import { Header } from '../components/layout//Header';
 import { MessagesPanel } from '../components/layout/MessagesPanel';
 import { FleetManagement } from './FleetManagement';
 import { UserManagement } from './UserManagement';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { toast } from '../utils/toast';
 import type { User } from './LoginPage';
 
 interface Position {
@@ -99,6 +103,9 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   const [fleetManagementOpen, setFleetManagementOpen] = useState(false);
   const [userManagementOpen, setUserManagementOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectingRoutePoints, setSelectingRoutePoints] = useState(false);
+  const [routePoints, setRoutePoints] = useState<Position[]>([]);
+  const [routeNameForPoints, setRouteNameForPoints] = useState('');
 
   // Create initial bus with real route on mount
   useEffect(() => {
@@ -228,6 +235,46 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
     setBuses(prevBuses => [...prevBuses, newBus]);
   };
 
+  const handleStartSelectingRoutePoints = () => {
+    setSelectingRoutePoints(true);
+    setRoutePoints([]);
+  };
+
+  const handleMapClick = (position: Position) => {
+    if (!selectingRoutePoints) return;
+    
+    setRoutePoints(prev => {
+      if (prev.length < 2) {
+        return [...prev, position];
+      }
+      return prev;
+    });
+  };
+
+  const handleCancelRouteSelection = () => {
+    setSelectingRoutePoints(false);
+    setRoutePoints([]);
+    setRouteNameForPoints('');
+  };
+
+  const handleRoutePointsSelected = (onAddRoute: (route: any) => void) => {
+    return (routeName: string) => {
+      if (routePoints.length === 2) {
+        const newRoute = {
+          id: `route-${Date.now()}`,
+          name: routeName,
+          startPoint: `${routePoints[0].lat.toFixed(5)}, ${routePoints[0].lng.toFixed(5)}`,
+          endPoint: `${routePoints[1].lat.toFixed(5)}, ${routePoints[1].lng.toFixed(5)}`,
+          coordinates: routePoints
+        };
+        onAddRoute(newRoute);
+        setSelectingRoutePoints(false);
+        setRoutePoints([]);
+        setRouteNameForPoints('');
+      }
+    };
+  };
+
   const selectedBusData = detailsBus ? (buses.find(bus => bus.id === detailsBus) ?? null) : null;
 
   // Narrow statuses for FleetManagement prop expectations ('moving' | 'parked' | 'maintenance')
@@ -244,7 +291,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-black-50">
       {/* Header */}
       <Header 
         user={user} 
@@ -280,7 +327,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
         />
 
         {/* Main map area */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 relative">
           <div className="w-full h-full rounded-lg overflow-hidden border shadow-lg">
             {loading ? (
               <div className="flex items-center justify-center h-full bg-gray-100">
@@ -289,14 +336,107 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
                 </div>
               </div>
             ) : (
-              <Map 
-                buses={buses}
-                selectedBusId={selectedBus}
-                onBusSelect={handleBusSelect}
-              />
+              <>
+                <Map 
+                  buses={buses}
+                  selectedBusId={selectedBus}
+                  onBusSelect={handleBusSelect}
+                  onMapClick={selectingRoutePoints ? handleMapClick : undefined}
+                  isSelectingRoutePoints={selectingRoutePoints}
+                  routePoints={routePoints}
+                />
+              </>
             )}
           </div>
         </div>
+
+        {/* Route Point Selection Panel - Left side */}
+        {selectingRoutePoints && (
+          <div className="fixed inset-y-0 left-0 w-80 bg-white border-r shadow-2xl z-50 flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b bg-black">
+              <h2 className="font-bold text-black text-lg">Crear Ruta</h2>
+              <p className="text-sm text-gray-300 mt-1">Selecciona puntos en el mapa</p>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+              <div className="bg-gray-100 border-2 border-gray-400 rounded-lg p-3">
+                <p className="text-sm font-bold text-gray-900">
+                  Puntos seleccionados: {routePoints.length}/2
+                </p>
+              </div>
+
+              {routePoints.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    {routePoints.map((point, idx) => (
+                      <div key={idx} className="bg-gray-50 p-3 rounded border-2 border-gray-300 shadow-md">
+                        <p className="text-xs text-purple-700 font-bold mb-1">
+                          {idx === 0 ? '📍 Punto de Salida' : '🎯 Punto de Llegada'}
+                        </p>
+                        <p className="text-xs text-gray-800 font-mono">
+                          {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setRoutePoints([])}
+                    className="w-full text-red-600 border-red-500 border-2 hover:bg-red-50 font-bold"
+                  >
+                    🗑️ Limpiar Puntos
+                  </Button>
+                </>
+              )}
+
+              {routePoints.length === 2 && (
+                      <div className="space-y-2 bg-gray-50 p-3 rounded-lg border-2 border-gray-400 shadow-md">
+                  <Label htmlFor="route-name-panel" className="text-gray-800 font-bold">Nombre de la Ruta</Label>
+                  <Input
+                    id="route-name-panel"
+                    placeholder="Ej: Ruta 102 - Centro a Cuscatlán"
+                    value={routeNameForPoints}
+                    onChange={(e) => setRouteNameForPoints(e.target.value)}
+                    autoFocus
+                    className="border-2 border-gray-400 font-semibold"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Footer with buttons */}
+            <div className="p-4 border-t-2 border-gray-300 space-y-2 bg-gray-100">
+              <Button
+                variant="outline"
+                onClick={handleCancelRouteSelection}
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold border-0"
+              >
+                ✕ Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  if (routePoints.length === 2 && routeNameForPoints.trim()) {
+                    toast.success('Ruta creada exitosamente', {
+                      description: `${routeNameForPoints.trim()} ha sido agregada`
+                    });
+                    
+                    // Limpiar estado
+                    setSelectingRoutePoints(false);
+                    setRoutePoints([]);
+                    setRouteNameForPoints('');
+                    setFleetManagementOpen(false);
+                  }
+                }}
+                disabled={routePoints.length < 2 || !routeNameForPoints.trim()}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold border-0 disabled:bg-gray-400"
+              >
+                ✓ Confirmar Ruta
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Details panel */}
         {detailsBus && !messagesOpen && !fleetManagementOpen && !userManagementOpen && (
@@ -326,6 +466,7 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
             onClose={() => setFleetManagementOpen(false)}
             onAddBus={handleAddBus}
             onDeleteBus={handleDeleteBus}
+            onStartSelectingRoutePoints={handleStartSelectingRoutePoints}
           />
         )}
 

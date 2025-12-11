@@ -21,6 +21,13 @@ import { Badge } from '../components/ui/badge';
 import { toast } from '../utils/toast';
 import type { User as UserType } from './LoginPage';
 
+interface Route {
+  id: string;
+  name: string;
+  startPoint: string;
+  endPoint: string;
+}
+
 interface Bus {
   id: string;
   licensePlate: string;
@@ -39,11 +46,15 @@ interface FleetManagementProps {
   onClose: () => void;
   onAddBus: (bus: Bus) => void;
   onDeleteBus: (busId: string) => void;
+  routes?: Route[];
+  onAddRoute?: (route: Route) => void;
+  onStartSelectingRoutePoints?: () => void;
 }
 
-export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }: FleetManagementProps) {
+export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus, onStartSelectingRoutePoints }: FleetManagementProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addRouteDialogOpen, setAddRouteDialogOpen] = useState(false);
   const [busToDelete, setBusToDelete] = useState<Bus | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -52,12 +63,47 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
   const [newBusRoute, setNewBusRoute] = useState('101');
   const [newBusDriver, setNewBusDriver] = useState('');
 
+  // New route form state
+  const [newRouteName, setNewRouteName] = useState('');
+  const [newRouteStartPoint, setNewRouteStartPoint] = useState('');
+  const [newRouteEndPoint, setNewRouteEndPoint] = useState('');
+
   const availableRoutes = ['101', '102', '201', '205', '301', '305', '401', '501'];
   const availableDrivers = [
     'Carlos Rodríguez', 'María González', 'José López', 'Ana Martínez',
     'Luis Hernández', 'Carmen Jiménez', 'Roberto Silva', 'Patricia Vargas',
     'Miguel Castillo', 'Laura Morales', 'Fernando Vega', 'Sofía Ramírez'
   ];
+
+  const handleAddRoute = () => {
+    if (!newRouteName.trim() || !newRouteStartPoint.trim() || !newRouteEndPoint.trim()) {
+      toast.error('Error', {
+        description: 'Por favor completa todos los campos de la ruta'
+      });
+      return;
+    }
+
+    const newRoute: Route = {
+      id: `route-${Date.now()}`,
+      name: newRouteName.trim(),
+      startPoint: newRouteStartPoint.trim(),
+      endPoint: newRouteEndPoint.trim()
+    };
+
+    if (onAddRoute) {
+      onAddRoute(newRoute);
+    }
+
+    toast.success('Ruta agregada exitosamente', {
+      description: `Ruta ${newRouteName} ha sido creada`
+    });
+
+    // Reset form
+    setNewRouteName('');
+    setNewRouteStartPoint('');
+    setNewRouteEndPoint('');
+    setAddRouteDialogOpen(false);
+  };
 
   const filteredBuses = buses.filter(bus =>
     bus.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,6 +204,21 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
             <Button onClick={() => setAddDialogOpen(true)} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               Agregar Nuevo Bus
+            </Button>
+          )}
+
+          {user.role === 'admin' && (
+            <Button 
+              onClick={() => {
+                if (onStartSelectingRoutePoints) {
+                  onStartSelectingRoutePoints();
+                }
+              }} 
+              style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
+              className="w-full font-bold shadow-md hover:opacity-90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Nueva Ruta
             </Button>
           )}
         </div>
@@ -296,6 +357,59 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Route Dialog - Manual only */}
+      <Dialog open={addRouteDialogOpen} onOpenChange={setAddRouteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar Nueva Ruta</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos de la nueva ruta manualmente
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="route-name">Nombre de la Ruta</Label>
+              <Input
+                id="route-name"
+                placeholder="Ej: Ruta 102 - Centro a Cuscatlán"
+                value={newRouteName}
+                onChange={(e) => setNewRouteName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="route-start">Punto de Salida</Label>
+              <Input
+                id="route-start"
+                placeholder="Ej: Terminal de Occidente"
+                value={newRouteStartPoint}
+                onChange={(e) => setNewRouteStartPoint(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="route-end">Punto de Llegada</Label>
+              <Input
+                id="route-end"
+                placeholder="Ej: Terminal del Oriente"
+                value={newRouteEndPoint}
+                onChange={(e) => setNewRouteEndPoint(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddRouteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddRoute}>Agregar Ruta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function onAddRoute(newRoute: Route) {
+  throw new Error('Function not implemented.');
 }

@@ -71,6 +71,9 @@ interface MapProps {
   buses?: Bus[];
   onBusSelect?: (busId: string) => void;
   selectedBusId?: string | null;
+  onMapClick?: (position: Position) => void;
+  isSelectingRoutePoints?: boolean;
+  routePoints?: Position[];
 }
 
 const BUS_STATUS_COLORS = {
@@ -225,7 +228,7 @@ const updateBusRoute = (bus: Bus, mapInstance: MapboxMap) => {
   }
 };
 
-export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId }: MapProps) {
+export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId, onMapClick, isSelectingRoutePoints, routePoints = [] }: MapProps) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapboxMap | null>(null);
   const firstFitRef = useRef(false);
@@ -279,6 +282,26 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId 
     return cleanup;
   }, [initializeMap]);
 
+  // Handle map clicks for route point selection
+  useEffect(() => {
+    if (!map.current || !isSelectingRoutePoints) return;
+
+    const handleMapClick = (e: any) => {
+      const { lat, lng } = e.lngLat;
+      if (onMapClick) {
+        onMapClick({ lat, lng });
+      }
+    };
+
+    map.current.on('click', handleMapClick);
+
+    return () => {
+      if (map.current) {
+        map.current.off('click', handleMapClick);
+      }
+    };
+  }, [isSelectingRoutePoints, onMapClick]);
+
   // Ensure map and markers are cleaned up on unmount
   useEffect(() => {
     return () => {
@@ -298,7 +321,110 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId 
     };
   }, []);
 
-  // Handle bus updates
+  // Handle route points visualization
+  useEffect(() => {
+    if (!map.current || !isSelectingRoutePoints) {
+      // Remove layers when not selecting
+      if (map.current) {
+        if (map.current.getLayer('route-points-text')) {
+          map.current.removeLayer('route-points-text');
+        }
+        if (map.current.getLayer('route-points')) {
+          map.current.removeLayer('route-points');
+        }
+        if (map.current.getSource('route-points')) {
+          map.current.removeSource('route-points');
+        }
+      }
+      return;
+    }
+
+    // Wait for map to load
+    if (!map.current.loaded()) {
+      map.current.once('load', () => {
+        updateRoutePointsVisualization();
+      });
+      return;
+    }
+
+    updateRoutePointsVisualization();
+
+    function updateRoutePointsVisualization() {
+      if (!map.current) return;
+
+      // Remove existing route points layers
+      if (map.current.getLayer('route-points-text')) {
+        map.current.removeLayer('route-points-text');
+      }
+      if (map.current.getLayer('route-points')) {
+        map.current.removeLayer('route-points');
+      }
+      if (map.current.getSource('route-points')) {
+        map.current.removeSource('route-points');
+      }
+
+      // If no points, don't add layers
+      if (routePoints.length === 0) return;
+
+      // Add source for route points
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: routePoints.map((point, idx) => ({
+          type: 'Feature',
+          properties: { index: idx, type: idx === 0 ? 'start' : 'end' },
+          geometry: { type: 'Point', coordinates: [point.lng, point.lat] }
+        }))
+      };
+
+      map.current.addSource('route-points', {
+        type: 'geojson',
+        data: geojson
+      });
+
+      // Add layer for route points
+      map.current.addLayer({
+        id: 'route-points',
+        type: 'circle',
+        source: 'route-points',
+        paint: {
+          'circle-radius': [
+            'case',
+            ['==', ['get', 'type'], 'start'],
+            12,
+            12
+          ],
+          'circle-color': [
+            'case',
+            ['==', ['get', 'type'], 'start'],
+            '#4CAF50',
+            '#2196F3'
+          ],
+          'circle-opacity': 0.9,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      // Add text layer for point numbers
+      map.current.addLayer({
+        id: 'route-points-text',
+        type: 'symbol',
+        source: 'route-points',
+        layout: {
+          'text-field': ['+', ['get', 'index'], 1],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 16,
+          'text-offset': [0, 0],
+          'text-anchor': 'center'
+        },
+        paint: {
+          'text-color': '#fff',
+          'text-halo-color': '#000',
+          'text-halo-width': 2
+        }
+      });
+    }
+  }, [isSelectingRoutePoints, routePoints]);
   useEffect(() => {
     if (!map.current || buses.length === 0) return;
 
