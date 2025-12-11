@@ -362,9 +362,6 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId,
     if (!HAS_MAPBOX_TOKEN || !map.current || !isSelectingRoutePoints) {
       // Remove layers when not selecting
       if (map.current) {
-        if (map.current.getLayer('route-points-text')) {
-          map.current.removeLayer('route-points-text');
-        }
         if (map.current.getLayer('route-points')) {
           map.current.removeLayer('route-points');
         }
@@ -438,25 +435,6 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId,
           'circle-opacity': 0.9,
           'circle-stroke-width': 3,
           'circle-stroke-color': '#fff'
-        }
-      });
-
-      // Add text layer for point numbers
-      map.current.addLayer({
-        id: 'route-points-text',
-        type: 'symbol',
-        source: 'route-points',
-        layout: {
-          'text-field': ['+', ['get', 'index'], 1],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': 16,
-          'text-offset': [0, 0],
-          'text-anchor': 'center'
-        },
-        paint: {
-          'text-color': '#fff',
-          'text-halo-color': '#000',
-          'text-halo-width': 2
         }
       });
     }
@@ -796,6 +774,4 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId,
           transform: scale(0.95);
         }
       `}</style>
-    </div>
-  );
-}
+    </div>);}
