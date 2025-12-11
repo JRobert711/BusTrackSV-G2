@@ -203,7 +203,21 @@ async function requireDriverOrAdminForBus(req, res, next) {
 
     // Import bus service to check bus assignment
     const busService = require('../services/busService');
-    const bus = await busService.getBusById(busId);
+    
+    let bus;
+    try {
+      bus = await busService.getBusById(busId);
+    } catch (error) {
+      // If bus not found, return 404
+      if (error.status === 404 || error.type === 'NOT_FOUND') {
+        return res.status(404).json({
+          error: 'Bus not found',
+          type: 'NOT_FOUND'
+        });
+      }
+      // Re-throw other errors to be caught by outer catch
+      throw error;
+    }
 
     if (!bus) {
       return res.status(404).json({
@@ -213,14 +227,92 @@ async function requireDriverOrAdminForBus(req, res, next) {
     }
 
     // Check if user is the driver (compare by ID or name)
-    const isDriver = bus.driver === req.user.id || 
-                     bus.driver === req.user.name ||
-                     (bus.driver && bus.driver.toLowerCase() === req.user.name.toLowerCase());
+    // Handle cases where bus.driver or req.user.name might be null/undefined
+    const busDriver = bus.driver ? String(bus.driver).trim() : null;
+    
+    // Handle null/undefined name properly - don't convert null to string "null"
+    let userName = null;
+    if (req.user.name !== null && req.user.name !== undefined && req.user.name !== 'null') {
+      userName = String(req.user.name).trim();
+      // If after trimming it becomes empty or "null", set to null
+      if (userName === '' || userName === 'null') {
+        userName = null;
+      }
+    }
+    
+    const userId = req.user.id ? String(req.user.id).trim() : null;
+    
+    // Debug logging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Driver check:', {
+        busId: busId,
+        busDriver: busDriver,
+        userId: userId,
+        userName: userName,
+        reqUserName: req.user.name,
+        reqUserRaw: req.user,
+        busDriverType: typeof busDriver,
+        userIdType: typeof userId,
+        userNameType: typeof userName
+      });
+    }
+    
+    // Check if user is the driver - prioritize ID comparison since it's more reliable
+    let isDriver = false;
+    
+    if (busDriver && userId) {
+      // Primary check: Exact match by ID (most reliable)
+      if (busDriver === userId) {
+        isDriver = true;
+      }
+      // Secondary check: Case-insensitive match by ID
+      else if (busDriver.toLowerCase() === userId.toLowerCase()) {
+        isDriver = true;
+      }
+      // Tertiary check: If name is available, try name matching
+      else if (userName && userName !== 'null') {
+        // Exact match by name
+        if (busDriver === userName) {
+          isDriver = true;
+        }
+        // Case-insensitive match by name
+        else if (busDriver.toLowerCase() === userName.toLowerCase()) {
+          isDriver = true;
+        }
+        // Partial match: check if bus driver name contains user name or vice versa
+        // This handles cases like "Carlos Rodríguez" vs "Carlos"
+        else {
+          const busDriverLower = busDriver.toLowerCase();
+          const userNameLower = userName.toLowerCase();
+          // Check if bus driver name contains user name or vice versa
+          if (busDriverLower.includes(userNameLower) || userNameLower.includes(busDriverLower)) {
+            // Additional check: extract first name from full name
+            const busDriverFirstName = busDriverLower.split(' ')[0];
+            const userNameFirstName = userNameLower.split(' ')[0];
+            if (busDriverFirstName === userNameFirstName) {
+              isDriver = true;
+            }
+          }
+        }
+      }
+    }
 
     if (!isDriver) {
+      // Provide more detailed error message in development
+      const errorMessage = process.env.NODE_ENV === 'development'
+        ? `You can only update the position of your assigned bus. Bus driver: "${busDriver}", Your ID: "${userId}", Your name: "${userName}"`
+        : 'You can only update the position of your assigned bus';
+      
       return res.status(403).json({
-        error: 'You can only update the position of your assigned bus',
-        type: 'FORBIDDEN'
+        error: errorMessage,
+        type: 'FORBIDDEN',
+        ...(process.env.NODE_ENV === 'development' && {
+          debug: {
+            busDriver,
+            userId,
+            userName
+          }
+        })
       });
     }
 
@@ -228,9 +320,17 @@ async function requireDriverOrAdminForBus(req, res, next) {
     next();
   } catch (error) {
     console.error('Error in requireDriverOrAdminForBus:', error);
+    // If error already has a status, preserve it
+    if (error.status) {
+      return res.status(error.status).json({
+        error: error.message || 'Internal server error',
+        type: error.type || 'INTERNAL_ERROR'
+      });
+    }
     return res.status(500).json({
       error: 'Internal server error',
-      type: 'INTERNAL_ERROR'
+      type: 'INTERNAL_ERROR',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

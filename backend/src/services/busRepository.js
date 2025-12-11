@@ -110,13 +110,37 @@ class FirestoreBusRepository extends IBusRepository {
 
     const data = doc.data();
 
-    // Map position if it exists
+    // Map position if it exists - validate and convert to numbers
     let position = null;
     if (data.position && typeof data.position === 'object') {
-      position = {
-        lat: data.position.lat,
-        lng: data.position.lng
-      };
+      const lat = data.position.lat;
+      const lng = data.position.lng;
+      
+      // Validate that lat and lng exist and are numbers
+      if (lat !== undefined && lng !== undefined && 
+          (typeof lat === 'number' || typeof lat === 'string') && 
+          (typeof lng === 'number' || typeof lng === 'string')) {
+        const latNum = Number(lat);
+        const lngNum = Number(lng);
+        
+        // Check if conversion was successful and values are valid
+        if (!isNaN(latNum) && !isNaN(lngNum) &&
+            latNum >= -90 && latNum <= 90 &&
+            lngNum >= -180 && lngNum <= 180) {
+          position = {
+            lat: latNum,
+            lng: lngNum
+          };
+        } else {
+          // Log warning if position data is invalid but don't throw
+          console.warn(`Invalid position data for bus ${doc.id}:`, { lat, lng, latNum, lngNum });
+          position = null;
+        }
+      } else {
+        // Log warning if position structure is invalid
+        console.warn(`Invalid position structure for bus ${doc.id}:`, data.position);
+        position = null;
+      }
     }
 
     return new Bus({
@@ -415,15 +439,43 @@ class FirestoreBusRepository extends IBusRepository {
         throw error;
       }
 
-      // Update position
+      // Validate and convert coordinates
+      const { validateCoordinates } = require('../utils/validation');
+      
+      // Convert to numbers and validate
+      const latNum = Number(lat);
+      const lngNum = Number(lng);
+      
+      // Check if conversion was successful
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        const error = new Error('Latitude and longitude must be valid numbers');
+        error.status = 400;
+        throw error;
+      }
+
+      // Validate coordinate ranges
+      validateCoordinates(latNum, lngNum);
+
+      // Update position with validated coordinates
       await docRef.update({
-        position: { lat, lng },
+        position: { 
+          lat: latNum, 
+          lng: lngNum 
+        },
         updatedAt: FieldValue.serverTimestamp()
       });
 
-      // Get updated document
+      // Get updated document and map to model
       const updatedDoc = await docRef.get();
-      return this._mapToModel(updatedDoc);
+      const updatedBus = this._mapToModel(updatedDoc);
+      
+      if (!updatedBus) {
+        const error = new Error('Failed to retrieve updated bus');
+        error.status = 500;
+        throw error;
+      }
+
+      return updatedBus;
     } catch (error) {
       // Re-throw known errors
       if (error.status) {

@@ -83,6 +83,7 @@ class UserService {
     const tokenPayload = {
       id: createdUser.id,
       email: createdUser.email,
+      name: createdUser.name,
       role: createdUser.role
     };
 
@@ -131,6 +132,7 @@ class UserService {
     const tokenPayload = {
       id: user.id,
       email: user.email,
+      name: user.name,
       role: user.role
     };
 
@@ -160,11 +162,25 @@ class UserService {
       const decoded = jwtUtil.verifyRefresh(refreshToken);
 
       // Generate new tokens
+      // Include name if available in decoded token, otherwise fetch from database
       const tokenPayload = {
         id: decoded.id,
         email: decoded.email,
+        name: decoded.name || null,
         role: decoded.role
       };
+      
+      // If name is not in token, fetch from database
+      if (!tokenPayload.name) {
+        try {
+          const user = await userRepository.findById(decoded.id);
+          if (user) {
+            tokenPayload.name = user.name;
+          }
+        } catch (err) {
+          console.warn('Could not fetch user name for token refresh:', err.message);
+        }
+      }
 
       const newToken = jwtUtil.signAccess(tokenPayload);
       const newRefreshToken = jwtUtil.signRefresh(tokenPayload);

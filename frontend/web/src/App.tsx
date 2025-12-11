@@ -36,8 +36,8 @@ export default function App() {
             // Update user data from server
             const updatedUser: User = {
               id: currentUserData.id,
-              email: currentUserData.email,
-              name: currentUserData.name,
+              email: currentUserData.email || '',
+              name: currentUserData.name || 'Usuario',
               role: currentUserData.role,
               createdAt: currentUserData.createdAt,
               updatedAt: currentUserData.updatedAt
