@@ -23,6 +23,10 @@ interface Bus {
   parkedTime?: number;
   movingTime?: number;
   isFavorite: boolean;
+  // Optional fields provided by the dashboard/map for routing
+  routeCoordinates?: { lat: number; lng: number }[];
+  currentPositionInRoute?: number;
+  currentStopIndex?: number;
 }
 
 interface BusDetailsProps {
@@ -135,6 +139,16 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
   const totalTime = (bus.movingTime || 0) + (bus.parkedTime || 0);
   const movingPercentage = totalTime > 0 ? ((bus.movingTime || 0) / totalTime) * 100 : 0;
 
+  // Determine the next stop coordinate (or null if not available)
+  const getNextStopCoordinate = () => {
+    if (!bus.routeCoordinates || bus.routeCoordinates.length === 0) return null;
+    const currentIdx = typeof bus.currentPositionInRoute === 'number' ? bus.currentPositionInRoute : 0;
+    const nextIdx = Math.min(currentIdx + 1, bus.routeCoordinates.length - 1);
+    return bus.routeCoordinates[nextIdx] ?? null;
+  };
+
+  const nextStopCoord = getNextStopCoordinate();
+
   // Mock additional data
   const mockData = {
     speed: bus.status === 'moving' ? Math.floor(Math.random() * 40 + 20) : 0,
@@ -202,17 +216,25 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               </Button>
             )}
           </div>
-          <div className="space-y-3">
+            <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Route className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Ruta {bus.route}</span>
             </div>
-            <div className="text-sm text-muted-foreground">
-              San José Centro → Cartago → San José Centro
-            </div>
+            {bus.route && (
+              <div className="text-sm text-muted-foreground">
+                {bus.route}
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Próxima parada:</span>
-              <span className="font-medium">Terminal Cartago</span>
+              {nextStopCoord ? (
+                <span className="font-medium">
+                  {`${nextStopCoord.lat.toFixed(5)}, ${nextStopCoord.lng.toFixed(5)}`}
+                </span>
+              ) : (
+                <span className="font-medium">—</span>
+              )}
             </div>
           </div>
         </Card>

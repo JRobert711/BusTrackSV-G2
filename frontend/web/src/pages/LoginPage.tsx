@@ -4,7 +4,6 @@ import { Button } from '../components//ui/button';
 import { Input } from '../components//ui/input';
 import { Label } from '../components//ui/label';
 import { Card } from '../components//ui/card';
-import { Checkbox } from '../components//ui/checkbox';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -48,7 +47,6 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,16 +58,11 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
     if (user && password === 'demo123') {
       onLogin(user);
     } else {
-      setError('Credenciales incorrectas. Intenta con admin@bustrack.com o supervisor@bustrack.com (contraseña: demo123)');
+      setError('Credenciales incorrectas.');
     }
   };
 
-  const handleQuickLogin = (userEmail: string) => {
-    const user = mockUsers[userEmail];
-    if (user) {
-      onLogin(user);
-    }
-  };
+  // Quick login removed from UI for production
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
@@ -110,11 +103,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
             </div>
           </div>
 
-          <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Demo:</strong> Usa admin@bustrack.com o supervisor@bustrack.com con contraseña: demo123
-            </p>
-          </div>
+          
         </div>
 
         {/* Right side - Login form */}
@@ -169,24 +158,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="remember"
-                    className="text-sm text-gray-600 cursor-pointer"
-                  >
-                    Recordarme
-                  </label>
-                </div>
-                <button type="button" className="text-sm text-blue-600 hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
+              <div />
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -209,31 +181,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               </button>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Acceso rápido para demo</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleQuickLogin('admin@bustrack.com')}
-                className="w-full"
-              >
-                Admin
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleQuickLogin('supervisor@bustrack.com')}
-                className="w-full"
-              >
-                Supervisor
-              </Button>
-            </div>
+            
           </div>
         </Card>
       </div>
