@@ -195,7 +195,7 @@ export function DriverPage({ user, onLogout, onNavigate }: DriverPageProps) {
           {/* Información del usuario y bus */}
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-2">
-              Bienvenido, <span className="text-blue-600">{user.name}</span>
+              Bienvenido, <span className="text-blue-600">{user.name || 'Usuario'}</span>
             </h2>
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-2">

@@ -23,13 +23,17 @@ interface HeaderProps {
 }
 
 export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleetManagement, onOpenUserManagement }: HeaderProps) {
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null) => {
+    if (!name || typeof name !== 'string') {
+      return 'U'; // Default initial if name is not available
+    }
     return name
       .split(' ')
       .map(n => n[0])
+      .filter(Boolean) // Filter out empty strings
       .join('')
       .toUpperCase()
-      .slice(0, 2);
+      .slice(0, 2) || 'U'; // Fallback to 'U' if no initials found
   };
 
   const getRoleBadge = (role: 'admin' | 'supervisor' | 'driver') => {
@@ -139,7 +143,7 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-sm font-medium">{user.name || 'Usuario'}</p>
                   <p className="text-xs text-gray-500">
                     {user.role === 'admin' ? 'Administrador' : 
                      user.role === 'supervisor' ? 'Supervisor' : 
@@ -152,8 +156,8 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="font-medium">{user.name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="font-medium">{user.name || 'Usuario'}</p>
+                  <p className="text-xs text-muted-foreground">{user.email || 'Sin email'}</p>
                   <div className="mt-1">
                     {getRoleBadge(user.role)}
                   </div>
