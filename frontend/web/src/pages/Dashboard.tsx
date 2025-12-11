@@ -179,6 +179,82 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
     return () => { mounted = false; };
   }, []);
 
+  // Polling para actualizar posiciones de buses desde el backend en tiempo real
+  // Esto permite que las actualizaciones del conductor se reflejen en el mapa
+  useEffect(() => {
+    if (loading) return;
+
+    let isActive = true;
+
+    const updateBusPositions = async () => {
+      if (!isActive) return;
+
+      try {
+        const response = await api.getBuses({ pageSize: 100 });
+        
+        if (!isActive) return;
+
+        // Actualizar solo las posiciones de los buses que han cambiado
+        setBuses(prevBuses => {
+          const updatedBuses = prevBuses.map(prevBus => {
+            const apiBus = response.data.find(b => b.id === prevBus.id);
+            
+            if (!apiBus || !apiBus.position) return prevBus;
+
+            // Solo actualizar si la posición ha cambiado significativamente (más de 10 metros)
+            const distance = Math.sqrt(
+              Math.pow(apiBus.position.lat - prevBus.position.lat, 2) +
+              Math.pow(apiBus.position.lng - prevBus.position.lng, 2)
+            );
+            
+            // Si la distancia es significativa (aproximadamente 0.0001 grados ≈ 10 metros)
+            // o si el bus no tiene posición previa, actualizar
+            if (distance > 0.0001 || !prevBus.position) {
+              return {
+                ...prevBus,
+                position: apiBus.position,
+                status: apiBus.status as 'moving' | 'parked' | 'maintenance',
+                driver: apiBus.driver ?? 'Sin asignar'
+              };
+            }
+
+            return prevBus;
+          });
+
+          // Agregar nuevos buses si existen
+          response.data.forEach(apiBus => {
+            if (!updatedBuses.find(b => b.id === apiBus.id)) {
+              updatedBuses.push({
+                ...apiBus,
+                status: apiBus.status as 'moving' | 'parked' | 'maintenance',
+                position: apiBus.position || { lat: 13.7942, lng: -88.9149 },
+                driver: apiBus.driver ?? 'Sin asignar',
+                routeCoordinates: undefined,
+                currentPositionInRoute: 0,
+                currentStopIndex: 0
+              } as Bus);
+            }
+          });
+
+          return updatedBuses;
+        });
+      } catch (err: any) {
+        console.warn('Error al actualizar posiciones de buses:', err);
+        // No mostrar toast para errores de polling, solo loguear
+      }
+    };
+
+    // Actualizar inmediatamente y luego cada 3 segundos
+    // Esto sincroniza las posiciones enviadas por el conductor
+    updateBusPositions();
+    const pollingInterval = setInterval(updateBusPositions, 3000);
+
+    return () => {
+      isActive = false;
+      clearInterval(pollingInterval);
+    };
+  }, [loading]);
+
   // Efecto para animar el bus y manejar cambios de parada/recálculo de ruta
   // También actualiza la posición en el backend periódicamente
   useEffect(() => {
@@ -190,6 +266,14 @@ export function Dashboard({ user, onNavigate, onLogout }: DashboardProps) {
       const needsPositionUpdate: Array<{ id: string; position: Position }> = [];
 
       setBuses(prevBuses => prevBuses.map(bus => {
+        // No animar buses que tienen conductor asignado (están siendo rastreados en tiempo real)
+        // Solo animar buses sin conductor o en mantenimiento
+        const hasDriver = bus.driver && bus.driver !== 'Sin asignar';
+        if (hasDriver && bus.status !== 'maintenance') {
+          // El conductor está enviando ubicaciones reales, no animar
+          return bus;
+        }
+
         if (!bus.routeCoordinates || bus.routeCoordinates.length === 0) return bus;
 
         const currentPosition = bus.currentPositionInRoute ?? 0;
