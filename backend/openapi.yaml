@@ -17,10 +17,12 @@ info:
     name: MIT
 
 servers:
+  # Note: These are example URLs for documentation purposes
+  # The actual server URL is configured via environment variables at runtime
   - url: http://localhost:5000/api/v1
-    description: Development server
+    description: Development server (default)
   - url: https://api.bustrack.sv/api/v1
-    description: Production server
+    description: Production server (example)
 
 tags:
   - name: Authentication

@@ -29,7 +29,7 @@ class UserService {
    * @param {string} userData.email - User email
    * @param {string} userData.name - User name
    * @param {string} userData.password - Plain text password
-   * @param {string} userData.role - User role (admin or supervisor)
+   * @param {string} userData.role - User role (admin, supervisor, or driver)
    * @returns {Promise<{user: Object, token: string, refreshToken: string}>}
    * @throws {Error} If email already exists or validation fails
    */
@@ -72,7 +72,7 @@ class UserService {
     const user = new User({
       email,
       name,
-      role: role || 'supervisor', // Default to supervisor
+      role: role || 'driver', // Default to driver
       passwordHash
     });
 

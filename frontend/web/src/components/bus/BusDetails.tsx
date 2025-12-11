@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Bus, Clock, MapPin, Route, User, Fuel, Settings, Pin, Phone, Pencil, AlertTriangle, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from '../../utils/toast';
 import { AdminActions } from '../admin/AdminActions';
 import type { User as UserType } from '../../pages/LoginPage';
+import { api } from '../../services/api';
 
 interface Bus {
   id: string;
@@ -23,6 +25,10 @@ interface Bus {
   parkedTime?: number;
   movingTime?: number;
   isFavorite: boolean;
+  // Optional fields provided by the dashboard/map for routing
+  routeCoordinates?: { lat: number; lng: number }[];
+  currentPositionInRoute?: number;
+  currentStopIndex?: number;
 }
 
 interface BusDetailsProps {
@@ -43,6 +49,36 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
   const [newDriver, setNewDriver] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [reprimandReason, setReprimandReason] = useState('');
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
+
+  // Load drivers from Firestore when editing driver dialog opens
+  useEffect(() => {
+    if (editingDriver) {
+      loadDrivers();
+    }
+  }, [editingDriver]);
+
+  const loadDrivers = async () => {
+    setLoadingDrivers(true);
+    try {
+      const response = await api.getUsers({ role: 'driver', limit: 100 });
+      const drivers = response.data.map(user => ({
+        id: user.id,
+        name: user.name
+      }));
+      setAvailableDrivers(drivers);
+    } catch (error: any) {
+      console.error('Error loading drivers:', error);
+      toast.error('Error', {
+        description: 'No se pudieron cargar los conductores. Por favor intenta de nuevo.'
+      });
+      // Fallback to empty array
+      setAvailableDrivers([]);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
 
   if (!bus) return null;
 
@@ -135,14 +171,26 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
   const totalTime = (bus.movingTime || 0) + (bus.parkedTime || 0);
   const movingPercentage = totalTime > 0 ? ((bus.movingTime || 0) / totalTime) * 100 : 0;
 
-  // Mock additional data
+  // Determine the next stop coordinate (or null if not available)
+  const getNextStopCoordinate = () => {
+    if (!bus.routeCoordinates || bus.routeCoordinates.length === 0) return null;
+    const currentIdx = typeof bus.currentPositionInRoute === 'number' ? bus.currentPositionInRoute : 0;
+    const nextIdx = Math.min(currentIdx + 1, bus.routeCoordinates.length - 1);
+    return bus.routeCoordinates[nextIdx] ?? null;
+  };
+
+  const nextStopCoord = getNextStopCoordinate();
+
+  // Mock additional data - TODO: Estos datos deberían venir del backend
   const mockData = {
     speed: bus.status === 'moving' ? Math.floor(Math.random() * 40 + 20) : 0,
     fuel: Math.floor(Math.random() * 40 + 60),
     temperature: Math.floor(Math.random() * 10 + 85),
     lastMaintenance: '15 días',
     totalKm: Math.floor(Math.random() * 50000 + 150000),
-    phoneNumber: '+506 8888-9999'
+    // TODO: El teléfono debería venir del objeto driver/bus desde el backend
+    // Por ahora, usar un valor de ejemplo desde variable de entorno o null
+    phoneNumber: (bus as any).driverPhone || import.meta.env.VITE_DEFAULT_DRIVER_PHONE || null
   };
 
   return (
@@ -202,17 +250,25 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
               </Button>
             )}
           </div>
-          <div className="space-y-3">
+            <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Route className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Ruta {bus.route}</span>
             </div>
-            <div className="text-sm text-muted-foreground">
-              San José Centro → Cartago → San José Centro
-            </div>
+            {bus.route && (
+              <div className="text-sm text-muted-foreground">
+                {bus.route}
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Próxima parada:</span>
-              <span className="font-medium">Terminal Cartago</span>
+              {nextStopCoord ? (
+                <span className="font-medium">
+                  {`${nextStopCoord.lat.toFixed(5)}, ${nextStopCoord.lng.toFixed(5)}`}
+                </span>
+              ) : (
+                <span className="font-medium">—</span>
+              )}
             </div>
           </div>
         </Card>
@@ -357,20 +413,30 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="driver">Nombre del Conductor</Label>
-              <Input
-                id="driver"
-                value={newDriver}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDriver(e.target.value)}
-                placeholder="Ej: Juan Pérez"
-              />
+              <Label htmlFor="driver">Conductor Asignado</Label>
+              <Select value={newDriver} onValueChange={setNewDriver} disabled={loadingDrivers}>
+                <SelectTrigger id="driver">
+                  <SelectValue placeholder={loadingDrivers ? "Cargando conductores..." : "Selecciona un conductor"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDrivers.length === 0 && !loadingDrivers ? (
+                    <SelectItem value="" disabled>No hay conductores disponibles</SelectItem>
+                  ) : (
+                    availableDrivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.name}>
+                        {driver.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingDriver(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveDriver}>
+            <Button onClick={handleSaveDriver} disabled={!newDriver || loadingDrivers}>
               Guardar Cambios
             </Button>
           </DialogFooter>

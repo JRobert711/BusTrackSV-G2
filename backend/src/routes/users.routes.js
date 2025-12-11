@@ -22,8 +22,8 @@ const { validateBody, validateQuery, validateParams } = require('../middlewares/
 
 // Query parameters for list users
 const listQuerySchema = Joi.object({
-  role: Joi.string().valid('admin', 'supervisor').optional().messages({
-    'any.only': 'Role must be either admin or supervisor'
+  role: Joi.string().valid('admin', 'supervisor', 'driver').optional().messages({
+    'any.only': 'Role must be either admin, supervisor, or driver'
   }),
   limit: Joi.number().integer().min(1).max(100).default(10).messages({
     'number.min': 'Limit must be at least 1',
@@ -51,8 +51,8 @@ const createUserSchema = Joi.object({
     'string.empty': 'Password is required',
     'any.required': 'Password is required'
   }),
-  role: Joi.string().valid('admin', 'supervisor').optional().messages({
-    'any.only': 'Role must be either admin or supervisor'
+  role: Joi.string().valid('admin', 'supervisor', 'driver').optional().messages({
+    'any.only': 'Role must be either admin, supervisor, or driver'
   })
 });
 
@@ -100,8 +100,8 @@ const apiLimiter = rateLimit({
 
 // GET /users
 // List all users with optional filters
-// Auth: any authenticated user (supervisor or admin)
-// Permissions: supervisor can read, admin can read
+// Auth: any authenticated user (supervisor, admin, or driver)
+// Permissions: supervisor, admin, and driver can read
 router.get(
   '/',
   apiLimiter,
@@ -112,8 +112,8 @@ router.get(
 
 // GET /users/:id
 // Get a single user by ID
-// Auth: any authenticated user (supervisor or admin)
-// Permissions: supervisor can read, admin can read
+// Auth: any authenticated user (supervisor, admin, or driver)
+// Permissions: supervisor, admin, and driver can read
 router.get(
   '/:id',
   apiLimiter,

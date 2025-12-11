@@ -13,7 +13,7 @@ const router = express.Router();
 const Joi = require('joi');
 const rateLimit = require('express-rate-limit');
 const busController = require('../controllers/busController');
-const { authenticateToken, requireAdmin } = require('../middlewares/auth');
+const { authenticateToken, requireAdmin, requireDriverOrAdminForBus } = require('../middlewares/auth');
 const { validateBody, validateQuery, validateParams } = require('../middlewares/validation');
 
 /**
@@ -137,8 +137,8 @@ const apiLimiter = rateLimit({
 
 // GET /buses
 // List all buses with pagination and filters
-// Auth: any authenticated user (supervisor or admin)
-// Permissions: supervisor can read, admin can read
+// Auth: any authenticated user (supervisor, admin, or driver)
+// Permissions: supervisor, admin, and driver can read
 router.get(
   '/',
   apiLimiter,
@@ -149,8 +149,8 @@ router.get(
 
 // GET /buses/:id
 // Get a single bus by ID
-// Auth: any authenticated user (supervisor or admin)
-// Permissions: supervisor can read, admin can read
+// Auth: any authenticated user (supervisor, admin, or driver)
+// Permissions: supervisor, admin, and driver can read
 router.get(
   '/:id',
   apiLimiter,
@@ -188,8 +188,8 @@ router.patch(
 
 // PATCH /buses/:id/favorite
 // Toggle favorite status of a bus
-// Auth: any authenticated user (supervisor or admin)
-// Permissions: both supervisor and admin can toggle favorites
+// Auth: any authenticated user (supervisor, admin, or driver)
+// Permissions: supervisor, admin, and driver can toggle favorites
 router.patch(
   '/:id/favorite',
   apiLimiter,
@@ -213,13 +213,13 @@ router.delete(
 
 // PATCH /buses/:id/position
 // Update bus GPS position
-// Auth: admin only (typically used by tracking system)
-// Permissions: admin only
+// Auth: authenticated user (driver can update their own bus, admin can update any)
+// Permissions: driver (own bus) or admin (any bus)
 router.patch(
   '/:id/position',
   apiLimiter,
   authenticateToken,
-  requireAdmin,
+  requireDriverOrAdminForBus,
   validateParams(idParamSchema),
   validateBody(positionSchema),
   busController.updatePosition

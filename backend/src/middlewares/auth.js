@@ -97,7 +97,7 @@ function authenticateToken(req, res, next) {
  * Usage:
  * ```javascript
  * router.get('/admin', authenticateToken, requireRole('admin'), handler);
- * router.get('/staff', authenticateToken, requireRole('admin', 'supervisor'), handler);
+ * router.get('/staff', authenticateToken, requireRole('admin', 'supervisor', 'driver'), handler);
  * ```
  *
  * Response on error:
@@ -159,6 +159,83 @@ const requireAdmin = requireRole('admin');
 const requireSupervisorOrAdmin = requireRole('supervisor', 'admin');
 
 /**
+ * Require Driver Role Middleware
+ *
+ * Convenience middleware that requires 'driver' role.
+ * Equivalent to requireRole('driver').
+ */
+const requireDriver = requireRole('driver');
+
+/**
+ * Require Driver or Admin for Bus Position Update
+ *
+ * Allows drivers to update position of their assigned bus, or admins to update any bus.
+ * Must be used after authenticateToken middleware.
+ * Requires busId in req.params.id
+ *
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ * @param {Function} next - Express next function
+ */
+async function requireDriverOrAdminForBus(req, res, next) {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        type: 'UNAUTHORIZED'
+      });
+    }
+
+    // Admins can always update
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    // For non-admins, check if they are the driver of this bus
+    const busId = req.params.id;
+    if (!busId) {
+      return res.status(400).json({
+        error: 'Bus ID is required',
+        type: 'BAD_REQUEST'
+      });
+    }
+
+    // Import bus service to check bus assignment
+    const busService = require('../services/busService');
+    const bus = await busService.getBusById(busId);
+
+    if (!bus) {
+      return res.status(404).json({
+        error: 'Bus not found',
+        type: 'NOT_FOUND'
+      });
+    }
+
+    // Check if user is the driver (compare by ID or name)
+    const isDriver = bus.driver === req.user.id || 
+                     bus.driver === req.user.name ||
+                     (bus.driver && bus.driver.toLowerCase() === req.user.name.toLowerCase());
+
+    if (!isDriver) {
+      return res.status(403).json({
+        error: 'You can only update the position of your assigned bus',
+        type: 'FORBIDDEN'
+      });
+    }
+
+    // User is the driver, allow update
+    next();
+  } catch (error) {
+    console.error('Error in requireDriverOrAdminForBus:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      type: 'INTERNAL_ERROR'
+    });
+  }
+}
+
+/**
  * Optional Authentication Middleware
  *
  * Attempts to authenticate the user but doesn't fail if token is missing.
@@ -198,6 +275,8 @@ module.exports = {
   authenticateToken,
   requireRole,
   requireAdmin,
+  requireDriver,
   requireSupervisorOrAdmin,
+  requireDriverOrAdminForBus,
   optionalAuth
 };

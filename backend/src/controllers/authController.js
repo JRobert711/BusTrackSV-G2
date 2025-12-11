@@ -17,7 +17,7 @@ const userService = require('../services/userService');
  *   email: string,
  *   name: string,
  *   password: string,
- *   role: 'admin' | 'supervisor' (optional, defaults to 'supervisor')
+ *   role: 'admin' | 'supervisor' | 'driver' (optional, defaults to 'driver')
  * }
  *
  * Response 201:

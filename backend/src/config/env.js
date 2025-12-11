@@ -28,7 +28,14 @@ const config = {
   // Server Port
   // ============================================
   port: {
-    PORT: parseInt(process.env.PORT, 10) || 5000
+    PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? null : 5000)
+  },
+  
+  // ============================================
+  // Server Host
+  // ============================================
+  server: {
+    HOST: process.env.SERVER_HOST || '0.0.0.0'
   },
 
   // ============================================
@@ -45,12 +52,16 @@ const config = {
   // CORS Configuration
   // ============================================
   cors: {
-    CORS_ORIGIN: parseCSV(process.env.CORS_ORIGIN, [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173'
-    ]),
+    CORS_ORIGIN: process.env.CORS_ORIGIN 
+      ? parseCSV(process.env.CORS_ORIGIN, [])
+      : (process.env.NODE_ENV === 'production' 
+          ? [] 
+          : [
+              'http://localhost:3000',
+              'http://localhost:5173',
+              'http://127.0.0.1:3000',
+              'http://127.0.0.1:5173'
+            ]),
     CORS_CREDENTIALS: process.env.CORS_CREDENTIALS === 'true'
   },
 
@@ -83,11 +94,28 @@ const config = {
   }
 };
 
+// Validate required config in production
+if (process.env.NODE_ENV === 'production') {
+  if (!config.port.PORT) {
+    throw new Error('PORT environment variable is required in production');
+  }
+  if (!config.jwt.JWT_SECRET || config.jwt.JWT_SECRET === 'change_me_in_production') {
+    throw new Error('JWT_SECRET environment variable must be set to a secure value in production');
+  }
+  if (!config.jwt.JWT_REFRESH_SECRET || config.jwt.JWT_REFRESH_SECRET === 'change_me_refresh_in_production') {
+    throw new Error('JWT_REFRESH_SECRET environment variable must be set to a secure value in production');
+  }
+  if (config.cors.CORS_ORIGIN.length === 0) {
+    throw new Error('CORS_ORIGIN environment variable must be set in production');
+  }
+}
+
 // Freeze the config object to prevent modifications at runtime
 const frozenConfig = Object.freeze({
   ...config,
   env: Object.freeze(config.env),
   port: Object.freeze(config.port),
+  server: Object.freeze(config.server),
   jwt: Object.freeze(config.jwt),
   cors: Object.freeze(config.cors),
   firebase: Object.freeze(config.firebase),

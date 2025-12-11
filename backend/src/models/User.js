@@ -10,7 +10,7 @@ const { validateEmail, validateEnum } = require('../utils/validation');
 /**
  * Allowed user roles
  */
-const ALLOWED_ROLES = ['admin', 'supervisor'];
+const ALLOWED_ROLES = ['admin', 'supervisor', 'driver'];
 
 /**
  * User Class
@@ -34,7 +34,7 @@ class User {
    * @param {string} data.id - User ID
    * @param {string} data.email - User email
    * @param {string} data.name - User name
-   * @param {string} data.role - User role (admin or supervisor)
+   * @param {string} data.role - User role (admin, supervisor, or driver)
    * @param {string} data.passwordHash - Hashed password
    * @param {Date|string} [data.createdAt] - Creation timestamp
    * @param {Date|string} [data.updatedAt] - Last update timestamp
@@ -265,6 +265,14 @@ class User {
    */
   isSupervisor() {
     return this.#role === 'supervisor';
+  }
+
+  /**
+   * Check if user has driver role
+   * @returns {boolean}
+   */
+  isDriver() {
+    return this.#role === 'driver';
   }
 
   /**

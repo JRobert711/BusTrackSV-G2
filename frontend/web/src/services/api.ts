@@ -5,30 +5,57 @@
  */
 
 // Backend API URL - configured via environment variable
-// Default to localhost for development if not set
-const normalizeApiBase = (raw?: string) => {
-  let base = (raw || 'http://localhost:5000/api/v1').trim();
+// In production, VITE_API_BASE_URL must be set
+const normalizeApiBase = (raw?: string): string => {
+  // In production, require the environment variable
+  if (import.meta.env.PROD && !raw) {
+    throw new Error(
+      'VITE_API_BASE_URL environment variable is required in production. ' +
+      'Please set it in your build environment.'
+    );
+  }
+  
+  // In development, use default if not set
+  const defaultUrl = import.meta.env.DEV 
+    ? 'http://localhost:5000/api/v1'
+    : null;
+  
+  let base = (raw || defaultUrl || '').trim();
+  
+  if (!base) {
+    throw new Error('API base URL is not configured');
+  }
+  
   // Strip trailing slash
   base = base.replace(/\/+$/, '');
+  
   // If it does not end with /api/v1, append it
   if (!/\/api(\/v1)?$/.test(base)) {
     base = `${base}/api/v1`;
   }
+  
   try {
     new URL(base);
   } catch (error) {
     console.error('Invalid API_BASE_URL format:', raw);
-    base = 'http://localhost:5000/api/v1';
-    console.warn('Falling back to default:', base);
+    throw new Error(`Invalid API base URL format: ${raw}`);
   }
+  
   return base;
 };
 
-let API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_BASE_URL);
+let API_BASE_URL: string;
 
-if (!import.meta.env.VITE_API_BASE_URL) {
+try {
+  API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_BASE_URL);
+} catch (error) {
+  console.error('Failed to configure API base URL:', error);
+  throw error;
+}
+
+if (!import.meta.env.VITE_API_BASE_URL && import.meta.env.DEV) {
   console.warn(
-    'VITE_API_BASE_URL is not defined. Using default: http://localhost:5000/api/v1\n' +
+    '⚠️  VITE_API_BASE_URL is not defined. Using development default: http://localhost:5000/api/v1\n' +
     'To set a custom URL, create a .env file in frontend/web/ with:\n' +
     'VITE_API_BASE_URL=http://localhost:5000/api/v1'
   );
@@ -80,7 +107,7 @@ interface RegisterRequest {
   email: string;
   name: string;
   password: string;
-  role?: 'admin' | 'supervisor';
+  role?: 'admin' | 'supervisor' | 'driver';
 }
 
 interface AuthResponse {
@@ -88,7 +115,7 @@ interface AuthResponse {
     id: string;
     email: string;
     name: string;
-    role: 'admin' | 'supervisor';
+    role: 'admin' | 'supervisor' | 'driver';
     createdAt: string;
     updatedAt: string;
   };
@@ -203,10 +230,11 @@ class ApiService {
       if (error instanceof TypeError) {
         // Network error - connection refused, etc.
         console.error('Network error:', error.message, 'URL:', url);
+        const apiBase = API_BASE_URL.replace('/api/v1', '').replace(/\/+$/, '');
         throw {
-          error: 'No se pudo conectar al servidor. Asegúrate de que el servidor backend esté ejecutándose en http://localhost:5000',
+          error: `No se pudo conectar al servidor. Asegúrate de que el servidor backend esté ejecutándose en ${apiBase}`,
           type: 'NETWORK_ERROR',
-          details: { url, message: error.message }
+          details: { url, message: error.message, apiBaseUrl: API_BASE_URL }
         };
       }
       throw error;
@@ -316,12 +344,50 @@ class ApiService {
     });
   }
 
+  /**
+   * Get bus assigned to a driver by user ID or name
+   * Used by drivers to get their assigned bus
+   */
+  async getBusByDriver(userIdOrName: string): Promise<Bus | null> {
+    try {
+      // Get all buses and find one where driver matches user ID or name
+      const response = await this.getBuses({ pageSize: 100 });
+      const bus = response.data.find(b => {
+        if (!b.driver) return false;
+        // Match by exact ID, exact name, or case-insensitive name
+        return b.driver === userIdOrName || 
+               b.driver.toLowerCase() === userIdOrName.toLowerCase();
+      });
+      return bus || null;
+    } catch (err) {
+      console.error('Error getting bus by driver:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Send GPS location from driver device
+   * @param payload - GPS data with idBus, Lat, Lon, Acc
+   */
+  async sendLocation(payload: {
+    idBus: string;
+    Lat: number;
+    Lon: number;
+    Acc: number;
+  }): Promise<{ bus: Bus }> {
+    // Convert to API format (Lat -> lat, Lon -> lng)
+    return this.updateBusPosition(payload.idBus, {
+      lat: payload.Lat,
+      lng: payload.Lon
+    });
+  }
+
   // ============================================
   // Users
   // ============================================
 
   async getUsers(params?: {
-    role?: 'admin' | 'supervisor';
+    role?: 'admin' | 'supervisor' | 'driver';
     limit?: number;
   }): Promise<{ data: Array<AuthResponse['user']> }> {
     const queryParams = new URLSearchParams();
@@ -348,7 +414,7 @@ class ApiService {
     email: string;
     name: string;
     password: string;
-    role?: 'admin' | 'supervisor';
+    role?: 'admin' | 'supervisor' | 'driver';
   }): Promise<AuthResponse> {
     return this.request<AuthResponse>('/users', {
       method: 'POST',
@@ -358,7 +424,7 @@ class ApiService {
 
   async updateUser(id: string, updates: {
     name?: string;
-    role?: 'admin' | 'supervisor';
+    role?: 'admin' | 'supervisor' | 'driver';
   }): Promise<{ user: AuthResponse['user'] }> {
     return this.request<{ user: AuthResponse['user'] }>(`/users/${id}`, {
       method: 'PATCH',

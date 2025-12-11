@@ -38,7 +38,7 @@ interface SupervisorUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'supervisor';
+  role: 'admin' | 'supervisor' | 'driver';
   phone?: string;
   department?: string;
   status?: 'active' | 'inactive';
@@ -291,7 +291,13 @@ export function UserManagement({ user, onClose }: UserManagementProps) {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{supervisor.email}</p>
-                    <p className="text-sm text-muted-foreground">Rol: {supervisor.role === 'admin' ? 'Administrador' : 'Supervisor'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Rol: {
+                        supervisor.role === 'admin' ? 'Administrador' :
+                        supervisor.role === 'supervisor' ? 'Supervisor' :
+                        'Chofer'
+                      }
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-1 text-sm mb-3">

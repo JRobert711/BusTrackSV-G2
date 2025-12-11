@@ -7,8 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Secret key for JWT (in production, use environment variable)
-const JWT_SECRET = 'bustrack_secret_key_2024';
+// Secret key for JWT - must be set via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('❌ Error: JWT_SECRET environment variable is required');
+  process.exit(1);
+}
 
 // Mock users database
 const users = [
@@ -252,7 +256,7 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

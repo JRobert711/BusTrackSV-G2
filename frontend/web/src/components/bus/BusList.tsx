@@ -55,16 +55,11 @@ export function BusList({
     useState(false);
 
   const filteredBuses = buses.filter((bus) => {
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      bus.licensePlate
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      bus.route
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      bus.driver
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      (bus.licensePlate || '').toLowerCase().includes(searchLower) ||
+      (bus.route || '').toLowerCase().includes(searchLower) ||
+      (bus.driver || '').toLowerCase().includes(searchLower);
 
     const matchesStatus =
       statusFilter === "all" || bus.status === statusFilter;

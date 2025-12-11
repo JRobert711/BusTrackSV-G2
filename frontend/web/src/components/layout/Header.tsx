@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Settings, LogOut, User, ChevronDown, Bus, MessageSquare, Users } from 'lucide-react';
+import { Bell, Settings, LogOut, User, ChevronDown, Bus, MessageSquare, Users, Navigation } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
@@ -15,7 +15,7 @@ import type { User as UserType } from '../../pages/LoginPage';
 
 interface HeaderProps {
   user: UserType;
-  onNavigate: (view: 'dashboard' | 'profile' | 'settings') => void;
+  onNavigate: (view: 'dashboard' | 'profile' | 'settings' | 'driver') => void;
   onLogout: () => void | Promise<void>;
   onOpenMessages?: () => void;
   onOpenFleetManagement?: () => void;
@@ -32,16 +32,26 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
       .slice(0, 2);
   };
 
-  const getRoleBadge = (role: 'admin' | 'supervisor') => {
-    return role === 'admin' ? (
-      <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-        Administrador
-      </Badge>
-    ) : (
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-        Supervisor
-      </Badge>
-    );
+  const getRoleBadge = (role: 'admin' | 'supervisor' | 'driver') => {
+    if (role === 'admin') {
+      return (
+        <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+          Administrador
+        </Badge>
+      );
+    } else if (role === 'supervisor') {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+          Supervisor
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-green-200">
+          Chofer
+        </Badge>
+      );
+    }
   };
 
   return (
@@ -60,37 +70,62 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
 
         {/* Right side - User actions */}
         <div className="flex items-center gap-4">
-          {/* Notifications and Messages */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative"
-            onClick={onOpenMessages}
-            title="Mensajes y Notificaciones"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </Button>
-
-          {/* Fleet Management - Only for admin */}
-          {user.role === 'admin' && (
+          {/* Driver View - Only for drivers */}
+          {user.role === 'driver' ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate('driver')}
+              title="Vista de Chofer"
+              className="bg-green-50 hover:bg-green-100"
+            >
+              <Navigation className="h-5 w-5 text-green-600" />
+            </Button>
+          ) : (
             <>
+              {/* Driver View - Available for admin/supervisor */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onOpenFleetManagement}
-                title="Gestión de Flota"
+                onClick={() => onNavigate('driver')}
+                title="Vista de Chofer"
               >
-                <Bus className="h-5 w-5" />
+                <Navigation className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenUserManagement}
-                title="Gestión de Supervisores y Conductores"
+
+              {/* Notifications and Messages */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="relative"
+                onClick={onOpenMessages}
+                title="Mensajes y Notificaciones"
               >
-                <Users className="h-5 w-5" />
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </Button>
+
+              {/* Fleet Management - Only for admin */}
+              {user.role === 'admin' && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onOpenFleetManagement}
+                    title="Gestión de Flota"
+                  >
+                    <Bus className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onOpenUserManagement}
+                    title="Gestión de Supervisores y Conductores"
+                  >
+                    <Users className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
             </>
           )}
 
@@ -105,7 +140,11 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
                 </Avatar>
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-gray-500">{user.role === 'admin' ? 'Administrador' : 'Supervisor'}</p>
+                  <p className="text-xs text-gray-500">
+                    {user.role === 'admin' ? 'Administrador' : 
+                     user.role === 'supervisor' ? 'Supervisor' : 
+                     'Chofer'}
+                  </p>
                 </div>
                 <ChevronDown className="h-4 w-4 text-gray-500" />
               </Button>
@@ -121,14 +160,19 @@ export function Header({ user, onNavigate, onLogout, onOpenMessages, onOpenFleet
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onNavigate('profile')}>
-                <User className="mr-2 h-4 w-4" />
-                Mi Perfil
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onNavigate('settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                Configuración
-              </DropdownMenuItem>
+              {/* Drivers can only access driver page, hide profile and settings */}
+              {user.role !== 'driver' && (
+                <>
+                  <DropdownMenuItem onClick={() => onNavigate('profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Mi Perfil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onNavigate('settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configuración
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />

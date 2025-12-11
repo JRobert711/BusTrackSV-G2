@@ -13,7 +13,7 @@ const userService = require('../services/userService');
  * GET /api/v1/users
  *
  * Query params:
- * - role: string (filter by role: admin, supervisor)
+ * - role: string (filter by role: admin, supervisor, or driver)
  * - limit: number (default: 10, max: 100)
  *
  * Response 200:
@@ -81,7 +81,7 @@ async function getUserById(req, res, next) {
  * - email: string
  * - name: string
  * - password: string
- * - role: string (optional, admin or supervisor)
+ * - role: string (optional, admin, supervisor, or driver)
  *
  * Response 201:
  * {
@@ -113,7 +113,7 @@ async function createUser(req, res, next) {
  *
  * Body:
  * - name: string (optional)
- * - role: string (optional, admin or supervisor)
+ * - role: string (optional, admin, supervisor, or driver)
  *
  * Response 200:
  * {

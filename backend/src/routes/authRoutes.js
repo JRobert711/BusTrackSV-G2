@@ -52,10 +52,10 @@ const registerSchema = Joi.object({
       'any.required': 'Password is required'
     }),
   role: Joi.string()
-    .valid('admin', 'supervisor')
+    .valid('admin', 'supervisor', 'driver')
     .optional()
     .messages({
-      'any.only': 'Role must be either admin or supervisor'
+      'any.only': 'Role must be either admin, supervisor, or driver'
     })
 });
 

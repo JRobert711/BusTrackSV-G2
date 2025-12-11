@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Route, User, AlertTriangle, MessageSquare, Bell, Wrench } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
@@ -25,6 +25,8 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from '../../utils/toast';
 import { Separator } from '../ui/separator';
+import { getAvailableRoutes } from '../../utils/config';
+import { api } from '../../services/api';
 
 interface Bus {
   id: string;
@@ -75,13 +77,38 @@ export function AdminActions({
   const [notifyMessage, setNotifyMessage] = useState('');
   const [warningReason, setWarningReason] = useState('');
   const [messageText, setMessageText] = useState('');
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
-  const availableRoutes = ['101', '102', '201', '205', '301', '305', '401', '501'];
-  const availableDrivers = [
-    'Carlos Rodríguez', 'María González', 'José López', 'Ana Martínez',
-    'Luis Hernández', 'Carmen Jiménez', 'Roberto Silva', 'Patricia Vargas',
-    'Miguel Castillo', 'Laura Morales', 'Fernando Vega', 'Sofía Ramírez'
-  ];
+  const availableRoutes = getAvailableRoutes();
+
+  // Load drivers from Firestore when driver dialog opens
+  useEffect(() => {
+    if (driverDialogOpen) {
+      loadDrivers();
+    }
+  }, [driverDialogOpen]);
+
+  const loadDrivers = async () => {
+    setLoadingDrivers(true);
+    try {
+      const response = await api.getUsers({ role: 'driver', limit: 100 });
+      const drivers = response.data.map(user => ({
+        id: user.id,
+        name: user.name
+      }));
+      setAvailableDrivers(drivers);
+    } catch (error: any) {
+      console.error('Error loading drivers:', error);
+      toast.error('Error', {
+        description: 'No se pudieron cargar los conductores. Por favor intenta de nuevo.'
+      });
+      // Fallback to empty array
+      setAvailableDrivers([]);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
 
   const handleDelete = () => {
     onDeleteBus?.(bus.id);
@@ -309,16 +336,20 @@ export function AdminActions({
             </div>
             <div className="space-y-2">
               <Label>Nuevo Conductor</Label>
-              <Select value={newDriver} onValueChange={setNewDriver}>
+              <Select value={newDriver} onValueChange={setNewDriver} disabled={loadingDrivers}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={loadingDrivers ? "Cargando conductores..." : "Selecciona un conductor"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDrivers.map((driver) => (
-                    <SelectItem key={driver} value={driver}>
-                      {driver}
-                    </SelectItem>
-                  ))}
+                  {availableDrivers.length === 0 && !loadingDrivers ? (
+                    <SelectItem value="" disabled>No hay conductores disponibles</SelectItem>
+                  ) : (
+                    availableDrivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.name}>
+                        {driver.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

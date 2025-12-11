@@ -33,18 +33,29 @@ export function UserProfile({ user, onBack, onUpdateUser }: UserProfileProps) {
       .slice(0, 2);
   };
 
-  const getRoleBadge = (role: 'admin' | 'supervisor') => {
-    return role === 'admin' ? (
-      <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-        <Shield className="h-3 w-3 mr-1" />
-        Administrador
-      </Badge>
-    ) : (
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-        <Shield className="h-3 w-3 mr-1" />
-        Supervisor
-      </Badge>
-    );
+  const getRoleBadge = (role: 'admin' | 'supervisor' | 'driver') => {
+    if (role === 'admin') {
+      return (
+        <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+          <Shield className="h-3 w-3 mr-1" />
+          Administrador
+        </Badge>
+      );
+    } else if (role === 'supervisor') {
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+          <Shield className="h-3 w-3 mr-1" />
+          Supervisor
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-green-200">
+          <Shield className="h-3 w-3 mr-1" />
+          Chofer
+        </Badge>
+      );
+    }
   };
 
   const handleSave = () => {

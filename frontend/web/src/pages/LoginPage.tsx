@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { Bus, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card } from '../components/ui/card';
-import { Checkbox } from '../components/ui/checkbox';
-import { api, type AuthResponse } from '../services/api';
-import { auth } from '../config/firebase';
-import { signInWithCustomToken } from 'firebase/auth';
-
-const DEMO_ADMIN_EMAIL = import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@example.com';
-const DEMO_SUP_EMAIL = import.meta.env.VITE_DEMO_SUPERVISOR_EMAIL || 'supervisor@example.com';
-const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD || 'demo123';
+import { Button } from '../components//ui/button';
+import { Input } from '../components//ui/input';
+import { Label } from '../components//ui/label';
+import { Card } from '../components//ui/card';
+import { api } from '../services/api';
+import { toast } from '../utils/toast';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -22,31 +16,21 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'supervisor';
+  role: 'admin' | 'supervisor' | 'driver';
   avatar?: string;
   department?: string;
   phone?: string;
   joinDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const syncFirebaseAuth = async (response: AuthResponse) => {
-    if (response.firebaseCustomToken) {
-      try {
-        await signInWithCustomToken(auth, response.firebaseCustomToken);
-      } catch (firebaseError: any) {
-        console.error('Error signing in to Firebase:', firebaseError);
-        setError('No se pudo iniciar sesión en Firebase para sincronizar datos en tiempo real.');
-      }
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,49 +38,40 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
     setLoading(true);
 
     try {
-      const response: AuthResponse = await api.login({ email, password });
-      await syncFirebaseAuth(response);
+      const response = await api.login({ email, password });
       
-      // Map API response to User interface
+      // Map backend user to frontend User interface
       const user: User = {
         id: response.user.id,
         email: response.user.email,
         name: response.user.name,
-        role: response.user.role
+        role: response.user.role,
+        createdAt: response.user.createdAt,
+        updatedAt: response.user.updatedAt
       };
 
+      // Store refresh token for token refresh
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
+
       onLogin(user);
+      toast.success('Inicio de sesión exitoso', {
+        description: `Bienvenido, ${user.name}`
+      });
     } catch (err: any) {
-      setError(err.error || 'Credenciales incorrectas. Por favor, verifica tu email y contraseña.');
+      console.error('Login error:', err);
+      const errorMessage = err.error || err.message || 'Credenciales incorrectas.';
+      setError(errorMessage);
+      toast.error('Error al iniciar sesión', {
+        description: errorMessage
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = async (userEmail: string, userPassword: string = DEMO_PASSWORD) => {
-    setError('');
-    setLoading(true);
-    setEmail(userEmail);
-    setPassword(userPassword);
-
-    try {
-      const response: AuthResponse = await api.login({ email: userEmail, password: userPassword });
-      await syncFirebaseAuth(response);
-      
-      // Map API response to User interface
-      const user: User = {
-        id: response.user.id,
-        email: response.user.email,
-        name: response.user.name,
-        role: response.user.role
-      };
-
-      onLogin(user);
-    } catch (err: any) {
-      setError(err.error || 'Error al iniciar sesión rápida. Asegúrate de que los usuarios de prueba existan en la base de datos.');
-      setLoading(false);
-    }
-  };
+  // Quick login removed from UI for production
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
@@ -137,6 +112,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
             </div>
           </div>
 
+          
         </div>
 
         {/* Right side - Login form */}
@@ -155,7 +131,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="correo@ejemplo.com"
+                    placeholder="usuario@bustrack.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -191,24 +167,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <label
-                    htmlFor="remember"
-                    className="text-sm text-gray-600 cursor-pointer"
-                  >
-                    Recordarme
-                  </label>
-                </div>
-                <button type="button" className="text-sm text-blue-600 hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
+              <div />
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -231,40 +190,7 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
               </button>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Acceso rápido para demo</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleQuickLogin(DEMO_ADMIN_EMAIL)}
-                className="w-full"
-                disabled={loading}
-              >
-                Admin
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleQuickLogin(DEMO_SUP_EMAIL)}
-                className="w-full"
-                disabled={loading}
-              >
-                Supervisor
-              </Button>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800">
-                <strong>Demo:</strong> Usa {DEMO_ADMIN_EMAIL} o {DEMO_SUP_EMAIL} con contraseña: {DEMO_PASSWORD}
-              </p>
-            </div>
-
+            
           </div>
         </Card>
       </div>

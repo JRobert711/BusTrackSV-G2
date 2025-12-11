@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Bus, Plus, Trash2, Search } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -19,7 +19,9 @@ import {
 } from './ui/alert-dialog';
 import { Badge } from './ui/badge';
 import { toast } from '../utils/toast';
-import type { User as UserType } from './LoginPage';
+import type { User as UserType } from '../pages/LoginPage';
+import { getAvailableRoutes, getDefaultRoute } from '../utils/config';
+import { api } from '../services/api';
 
 interface Bus {
   id: string;
@@ -46,23 +48,48 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [busToDelete, setBusToDelete] = useState<Bus | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   // New bus form state
   const [newBusPlate, setNewBusPlate] = useState('');
-  const [newBusRoute, setNewBusRoute] = useState('101');
+  const [newBusRoute, setNewBusRoute] = useState(getDefaultRoute());
   const [newBusDriver, setNewBusDriver] = useState('');
 
-  const availableRoutes = ['101', '102', '201', '205', '301', '305', '401', '501'];
-  const availableDrivers = [
-    'Carlos Rodríguez', 'María González', 'José López', 'Ana Martínez',
-    'Luis Hernández', 'Carmen Jiménez', 'Roberto Silva', 'Patricia Vargas',
-    'Miguel Castillo', 'Laura Morales', 'Fernando Vega', 'Sofía Ramírez'
-  ];
+  const availableRoutes = getAvailableRoutes();
+
+  // Load drivers from Firestore when dialog opens
+  useEffect(() => {
+    if (addDialogOpen) {
+      loadDrivers();
+    }
+  }, [addDialogOpen]);
+
+  const loadDrivers = async () => {
+    setLoadingDrivers(true);
+    try {
+      const response = await api.getUsers({ role: 'driver', limit: 100 });
+      const drivers = response.data.map(user => ({
+        id: user.id,
+        name: user.name
+      }));
+      setAvailableDrivers(drivers);
+    } catch (error: any) {
+      console.error('Error loading drivers:', error);
+      toast.error('Error', {
+        description: 'No se pudieron cargar los conductores. Por favor intenta de nuevo.'
+      });
+      // Fallback to empty array
+      setAvailableDrivers([]);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
 
   const filteredBuses = buses.filter(bus =>
-    bus.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bus.route.includes(searchTerm) ||
-    bus.driver.toLowerCase().includes(searchTerm.toLowerCase())
+    (bus.licensePlate || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bus.route || '').includes(searchTerm) ||
+    (bus.driver || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddBus = () => {
@@ -95,7 +122,7 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
 
     // Reset form
     setNewBusPlate('');
-    setNewBusRoute('101');
+    setNewBusRoute(getDefaultRoute());
     setNewBusDriver('');
     setAddDialogOpen(false);
   };
@@ -252,16 +279,20 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
             </div>
             <div className="space-y-2">
               <Label>Conductor Asignado</Label>
-              <Select value={newBusDriver} onValueChange={setNewBusDriver}>
+              <Select value={newBusDriver} onValueChange={setNewBusDriver} disabled={loadingDrivers}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un conductor" />
+                  <SelectValue placeholder={loadingDrivers ? "Cargando conductores..." : "Selecciona un conductor"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDrivers.map((driver) => (
-                    <SelectItem key={driver} value={driver}>
-                      {driver}
-                    </SelectItem>
-                  ))}
+                  {availableDrivers.length === 0 && !loadingDrivers ? (
+                    <SelectItem value="" disabled>No hay conductores disponibles</SelectItem>
+                  ) : (
+                    availableDrivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.name}>
+                        {driver.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

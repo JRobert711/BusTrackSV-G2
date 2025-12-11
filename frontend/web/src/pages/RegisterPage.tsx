@@ -19,14 +19,14 @@ export interface RegisterData {
   password: string;
   name: string;
   phone: string;
-  role: 'supervisor';
+  role: 'supervisor' | 'driver';
 }
 
 export interface RegisteredUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'supervisor';
+  role: 'admin' | 'supervisor' | 'driver';
   avatar?: string;
   department?: string;
   phone?: string;
@@ -40,6 +40,7 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
     confirmPassword: '',
     name: '',
     phone: '',
+    role: 'driver' as 'supervisor' | 'driver',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -73,11 +74,12 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
         email: formData.email,
         password: formData.password,
         name: formData.name,
-        role: 'supervisor',
+        role: formData.role,
       });
 
-      if (response && response.token) {
-        sessionStorage.setItem('authToken', response.token);
+      // Store refresh token for token refresh
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
       }
 
       if (response.firebaseCustomToken) {
@@ -93,17 +95,18 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
         email: response.user.email,
         name: response.user.name,
         role: response.user.role,
+        createdAt: response.user.createdAt,
+        updatedAt: response.user.updatedAt
       };
 
       onRegister(user);
     } catch (err: any) {
       // api.request throws plain objects with a 'type' or 'status'
+      const errorMessage = err.error || err.message || 'Error al registrar usuario';
+      setError(errorMessage);
+      
       if (err && (err.type === 'NETWORK_ERROR' || err.error === 'No se pudo conectar al servidor')) {
         setError('No se pudo establecer conexión con el sistema. Verifica tu conexión a internet o contacta al administrador.');
-      } else if (err && err.message) {
-        setError(err.message || 'Error al registrar usuario');
-      } else {
-        setError('Ocurrió un error inesperado. Por favor intenta de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -155,7 +158,7 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
           <div className="space-y-6">
             <div className="text-center md:text-left">
               <h2 className="text-3xl font-bold text-gray-900">Crear Cuenta</h2>
-              <p className="text-gray-600 mt-2">Regístrate como supervisor en BusTrack</p>
+              <p className="text-gray-600 mt-2">Regístrate en BusTrack</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -205,6 +208,22 @@ export function RegisterPage({ onBackToLogin, onRegister }: RegisterPageProps) {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Tipo de Usuario</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: 'supervisor' | 'driver') => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona tu rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="driver">Chofer</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

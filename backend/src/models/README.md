@@ -22,7 +22,7 @@ Represents a user in the BusTrack SV system with full validation and security.
 - ✅ **Private fields** for data encapsulation
 - ✅ **Automatic email normalization** (lowercase, trimmed)
 - ✅ **Name validation** (trimmed, 2-100 characters)
-- ✅ **Role validation** (admin, supervisor only)
+- ✅ **Role validation** (admin, supervisor, or driver)
 - ✅ **Password hash protection** (never exposed via toJSON)
 - ✅ **Timestamp management** (createdAt, updatedAt)
 
@@ -62,11 +62,12 @@ const dbObject = user.toDatabase();
 
 // Static methods
 console.log(User.collection());        // 'users'
-console.log(User.getAllowedRoles());   // ['admin', 'supervisor']
+console.log(User.getAllowedRoles());   // ['admin', 'supervisor', 'driver']
 
 // Instance methods
 user.isAdmin();      // true
 user.isSupervisor(); // false
+user.isDriver();     // false
 user.touch();        // Updates updatedAt to now
 ```
 
@@ -77,7 +78,7 @@ user.touch();        // Updates updatedAt to now
 | `id` | string | Required, non-empty | User identifier |
 | `email` | string | Required, valid format | Auto-converted to lowercase |
 | `name` | string | Required, 2-100 chars | Auto-trimmed |
-| `role` | string | Must be 'admin' or 'supervisor' | Validated against enum |
+| `role` | string | Must be 'admin', 'supervisor', or 'driver' | Validated against enum |
 | `passwordHash` | string | Required, min 10 chars | Never exposed in toJSON() |
 | `createdAt` | Date | Auto-set on creation | ISO 8601 string in JSON |
 | `updatedAt` | Date | Auto-updated | ISO 8601 string in JSON |
@@ -107,11 +108,12 @@ user.touch();        // Updates updatedAt to now
 - `toDatabase()` - Convert to database object (includes passwordHash)
 - `isAdmin()` - Check if user has admin role
 - `isSupervisor()` - Check if user has supervisor role
+- `isDriver()` - Check if user has driver role
 - `touch()` - Update updatedAt to current time
 
 **Static Methods:**
 - `User.collection()` - Returns 'users' (Firestore collection name)
-- `User.getAllowedRoles()` - Returns ['admin', 'supervisor']
+- `User.getAllowedRoles()` - Returns ['admin', 'supervisor', 'driver']
 - `User.fromDatabase(doc)` - Create User from database document
 
 #### Validation Rules

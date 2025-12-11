@@ -24,13 +24,19 @@ try {
 const app = require('./app');
 
 const PORT = config.port.PORT;
+const HOST = config.server.HOST;
 const NODE_ENV = config.env.NODE_ENV;
+
+if (!PORT) {
+  console.error('❌ Error: PORT environment variable is required');
+  process.exit(1);
+}
 
 // ============================================
 // Start Server
 // ============================================
-// Listen on all network interfaces (0.0.0.0) to accept connections from any IP
-const server = app.listen(PORT, '0.0.0.0', () => {
+// Listen on configured network interface
+const server = app.listen(PORT, HOST, () => {
   console.log('='.repeat(50));
   console.log('🚀 BusTrack SV Backend Server');
   console.log('='.repeat(50));
@@ -46,8 +52,12 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`  GET  http://localhost:${PORT}/api/v1/buses - Get buses`);
   console.log('='.repeat(50));
   console.log('✅ Server is ready and listening for connections');
-  console.log(`✅ Listening on 0.0.0.0:${PORT} (all network interfaces)`);
-  console.log(`✅ Accessible from: http://localhost:${PORT} or http://127.0.0.1:${PORT}`);
+  console.log(`✅ Listening on ${HOST}:${PORT}`);
+  if (HOST === '0.0.0.0') {
+    console.log(`✅ Accessible from: http://localhost:${PORT} or http://127.0.0.1:${PORT}`);
+  } else {
+    console.log(`✅ Accessible from: http://${HOST}:${PORT}`);
+  }
   console.log('='.repeat(50));
 });
 

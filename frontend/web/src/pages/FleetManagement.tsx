@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Bus, Plus, Trash2, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -20,6 +20,15 @@ import {
 import { Badge } from '../components/ui/badge';
 import { toast } from '../utils/toast';
 import type { User as UserType } from './LoginPage';
+import { getAvailableRoutes, getDefaultRoute } from '../utils/config';
+import { api } from '../services/api';
+
+interface Route {
+  id: string;
+  name: string;
+  startPoint: string;
+  endPoint: string;
+}
 
 interface Bus {
   id: string;
@@ -39,31 +48,95 @@ interface FleetManagementProps {
   onClose: () => void;
   onAddBus: (bus: Bus) => Promise<void> | void;
   onDeleteBus: (busId: string) => void;
+  routes?: Route[];
+  onAddRoute?: (route: Route) => void;
+  onStartSelectingRoutePoints?: () => void;
 }
 
-export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }: FleetManagementProps) {
+export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus, routes, onAddRoute, onStartSelectingRoutePoints }: FleetManagementProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addRouteDialogOpen, setAddRouteDialogOpen] = useState(false);
   const [busToDelete, setBusToDelete] = useState<Bus | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   // New bus form state
   const [newBusPlate, setNewBusPlate] = useState('');
-  const [newBusRoute, setNewBusRoute] = useState('101');
+  const [newBusRoute, setNewBusRoute] = useState(getDefaultRoute());
   const [newBusDriver, setNewBusDriver] = useState('');
 
-  const availableRoutes = ['101', '102', '201', '205', '301', '305', '401', '501'];
-  const availableDrivers = [
-    'Carlos Rodríguez', 'María González', 'José López', 'Ana Martínez',
-    'Luis Hernández', 'Carmen Jiménez', 'Roberto Silva', 'Patricia Vargas',
-    'Miguel Castillo', 'Laura Morales', 'Fernando Vega', 'Sofía Ramírez'
-  ];
+  // New route form state
+  const [newRouteName, setNewRouteName] = useState('');
+  const [newRouteStartPoint, setNewRouteStartPoint] = useState('');
+  const [newRouteEndPoint, setNewRouteEndPoint] = useState('');
+
+  const availableRoutes = getAvailableRoutes();
+
+  // Load drivers from Firestore when dialog opens
+  useEffect(() => {
+    if (addDialogOpen) {
+      loadDrivers();
+    }
+  }, [addDialogOpen]);
+
+  const loadDrivers = async () => {
+    setLoadingDrivers(true);
+    try {
+      const response = await api.getUsers({ role: 'driver', limit: 100 });
+      const drivers = response.data.map(user => ({
+        id: user.id,
+        name: user.name
+      }));
+      setAvailableDrivers(drivers);
+    } catch (error: any) {
+      console.error('Error loading drivers:', error);
+      toast.error('Error', {
+        description: 'No se pudieron cargar los conductores. Por favor intenta de nuevo.'
+      });
+      // Fallback to empty array
+      setAvailableDrivers([]);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
 
   const filteredBuses = buses.filter(bus =>
-    bus.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bus.route.includes(searchTerm) ||
-    bus.driver.toLowerCase().includes(searchTerm.toLowerCase())
+    (bus.licensePlate || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bus.route || '').includes(searchTerm) ||
+    (bus.driver || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleAddRoute = () => {
+    if (!newRouteName.trim() || !newRouteStartPoint.trim() || !newRouteEndPoint.trim()) {
+      toast.error('Error', {
+        description: 'Por favor completa todos los campos de la ruta'
+      });
+      return;
+    }
+
+    const newRoute: Route = {
+      id: `route-${Date.now()}`,
+      name: newRouteName.trim(),
+      startPoint: newRouteStartPoint.trim(),
+      endPoint: newRouteEndPoint.trim()
+    };
+
+    if (onAddRoute) {
+      onAddRoute(newRoute);
+    }
+
+    toast.success('Ruta agregada exitosamente', {
+      description: `Ruta ${newRouteName} ha sido creada`
+    });
+
+    // Reset form
+    setNewRouteName('');
+    setNewRouteStartPoint('');
+    setNewRouteEndPoint('');
+    setAddRouteDialogOpen(false);
+  };
 
   const handleAddBus = async () => {
     if (!newBusPlate.trim() || !newBusDriver) {
@@ -96,7 +169,7 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
 
       // Reset form
       setNewBusPlate('');
-      setNewBusRoute('101');
+      setNewBusRoute(getDefaultRoute());
       setNewBusDriver('');
       setAddDialogOpen(false);
     } catch (error: any) {
@@ -166,10 +239,26 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
           </div>
 
           {user.role === 'admin' && (
-            <Button onClick={() => setAddDialogOpen(true)} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Nuevo Bus
-            </Button>
+            <>
+              <Button onClick={() => setAddDialogOpen(true)} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Nuevo Bus
+              </Button>
+              {onStartSelectingRoutePoints && (
+                <Button 
+                  onClick={() => {
+                    if (onStartSelectingRoutePoints) {
+                      onStartSelectingRoutePoints();
+                    }
+                  }} 
+                  style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
+                  className="w-full font-bold shadow-md hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Nueva Ruta
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -263,16 +352,20 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
             </div>
             <div className="space-y-2">
               <Label>Conductor Asignado</Label>
-              <Select value={newBusDriver} onValueChange={setNewBusDriver}>
+              <Select value={newBusDriver} onValueChange={setNewBusDriver} disabled={loadingDrivers}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un conductor" />
+                  <SelectValue placeholder={loadingDrivers ? "Cargando conductores..." : "Selecciona un conductor"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDrivers.map((driver) => (
-                    <SelectItem key={driver} value={driver}>
-                      {driver}
-                    </SelectItem>
-                  ))}
+                  {availableDrivers.length === 0 && !loadingDrivers ? (
+                    <SelectItem value="" disabled>No hay conductores disponibles</SelectItem>
+                  ) : (
+                    availableDrivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.name}>
+                        {driver.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -307,6 +400,55 @@ export function FleetManagement({ user, buses, onClose, onAddBus, onDeleteBus }:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Route Dialog - Manual only */}
+      <Dialog open={addRouteDialogOpen} onOpenChange={setAddRouteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar Nueva Ruta</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos de la nueva ruta manualmente
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="route-name">Nombre de la Ruta</Label>
+              <Input
+                id="route-name"
+                placeholder="Ej: Ruta 102 - Centro a Cuscatlán"
+                value={newRouteName}
+                onChange={(e) => setNewRouteName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="route-start">Punto de Salida</Label>
+              <Input
+                id="route-start"
+                placeholder="Ej: Terminal de Occidente"
+                value={newRouteStartPoint}
+                onChange={(e) => setNewRouteStartPoint(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="route-end">Punto de Llegada</Label>
+              <Input
+                id="route-end"
+                placeholder="Ej: Terminal del Oriente"
+                value={newRouteEndPoint}
+                onChange={(e) => setNewRouteEndPoint(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddRouteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddRoute}>Agregar Ruta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
