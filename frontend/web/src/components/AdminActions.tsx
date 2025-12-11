@@ -78,9 +78,19 @@ export function AdminActions({
   const [warningReason, setWarningReason] = useState('');
   const [messageText, setMessageText] = useState('');
   const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableRoutes, setAvailableRoutes] = useState<string[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
 
-  const availableRoutes = getAvailableRoutes();
+  // Load routes when component mounts and when route dialog opens
+  useEffect(() => {
+    loadRoutes();
+  }, []);
+
+  useEffect(() => {
+    if (routeDialogOpen) {
+      loadRoutes();
+    }
+  }, [routeDialogOpen]);
 
   // Load drivers from Firestore when driver dialog opens
   useEffect(() => {
@@ -88,6 +98,25 @@ export function AdminActions({
       loadDrivers();
     }
   }, [driverDialogOpen]);
+
+  const loadRoutes = () => {
+    try {
+      // Obtener rutas del localStorage (creadas por los usuarios)
+      const savedRoutes = localStorage.getItem('bustrack_routes');
+      if (savedRoutes) {
+        const routes = JSON.parse(savedRoutes);
+        const routeNames = routes.map((route: any) => route.name);
+        setAvailableRoutes(routeNames);
+      } else {
+        // Fallback a rutas por defecto
+        setAvailableRoutes(getAvailableRoutes());
+      }
+    } catch (error) {
+      console.error('Error loading routes:', error);
+      // Fallback a rutas por defecto si hay error
+      setAvailableRoutes(getAvailableRoutes());
+    }
+  };
 
   const loadDrivers = async () => {
     setLoadingDrivers(true);
@@ -299,14 +328,20 @@ export function AdminActions({
               <Label>Nueva Ruta</Label>
               <Select value={newRoute} onValueChange={setNewRoute}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecciona una ruta" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableRoutes.map((route) => (
-                    <SelectItem key={route} value={route}>
-                      Ruta {route}
-                    </SelectItem>
-                  ))}
+                  {availableRoutes.length > 0 ? (
+                    availableRoutes.map((route) => (
+                      <SelectItem key={route} value={route}>
+                        {route}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-gray-500">
+                      No hay rutas disponibles
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>

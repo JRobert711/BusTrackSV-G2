@@ -50,6 +50,7 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
   const [notificationMessage, setNotificationMessage] = useState('');
   const [reprimandReason, setReprimandReason] = useState('');
   const [availableDrivers, setAvailableDrivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableRoutes, setAvailableRoutes] = useState<string[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   // Load drivers from Firestore when editing driver dialog opens
@@ -58,6 +59,32 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
       loadDrivers();
     }
   }, [editingDriver]);
+
+  // Load routes when editing route dialog opens
+  useEffect(() => {
+    if (editingRoute) {
+      loadRoutes();
+    }
+  }, [editingRoute]);
+
+  const loadRoutes = () => {
+    try {
+      // Obtener rutas del localStorage (creadas por los usuarios)
+      const savedRoutes = localStorage.getItem('bustrack_routes');
+      if (savedRoutes) {
+        const routes = JSON.parse(savedRoutes);
+        const routeNames = routes.map((route: any) => route.name);
+        setAvailableRoutes(routeNames);
+      } else {
+        // Fallback a rutas por defecto
+        setAvailableRoutes(['101', '102', '201', '205', '301', '305', '401', '501']);
+      }
+    } catch (error) {
+      console.error('Error loading routes:', error);
+      // Fallback a rutas por defecto si hay error
+      setAvailableRoutes(['101', '102', '201', '205', '301', '305', '401', '501']);
+    }
+  };
 
   const loadDrivers = async () => {
     setLoadingDrivers(true);
@@ -350,23 +377,40 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
           </div>
         </Card>
 
-        {/* Admin/Supervisor Actions */}
-        {user.role === 'admin' && (
+        {/* Admin/Supervisor Actions - Using AdminActions Component */}
+        {(user.role === 'admin' || user.role === 'supervisor') && (
           <Card className="p-4">
-            <h3 className="font-semibold mb-3">Acciones de Administrador</h3>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
+            <h3 className="font-semibold mb-3">Acciones {user.role === 'admin' ? 'de Administrador' : 'del Supervisor'}</h3>
+            <AdminActions
+              bus={bus}
+              userRole={user.role}
+              onDeleteBus={(busId) => {
                 if (window.confirm(`¿Estás seguro de eliminar el bus ${bus.licensePlate}?`)) {
-                  onDeleteBus(bus.id);
+                  onDeleteBus(busId);
                 }
               }}
-              className="w-full"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Eliminar
-            </Button>
+              onChangeRoute={(busId, newRoute) => {
+                onUpdateBus(busId, { route: newRoute });
+              }}
+              onChangeDriver={(busId, newDriver) => {
+                onUpdateBus(busId, { driver: newDriver });
+              }}
+              onChangeStatus={(busId, newStatus) => {
+                onUpdateBus(busId, { status: newStatus });
+              }}
+              onNotify={(busId, message) => {
+                // TODO: Send notification to driver via API
+                console.log(`Notifying bus ${busId}: ${message}`);
+              }}
+              onWarning={(busId, reason) => {
+                // TODO: Send warning to driver via API
+                console.log(`Warning bus ${busId}: ${reason}`);
+              }}
+              onMessage={(busId, message) => {
+                // TODO: Send message to driver via API
+                console.log(`Message to bus ${busId}: ${message}`);
+              }}
+            />
           </Card>
         )}
       </div>
@@ -382,13 +426,25 @@ export function BusDetails({ bus, user, onClose, onToggleFavorite, onUpdateBus, 
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="route">Número de Ruta</Label>
-              <Input
-                id="route"
-                value={newRoute}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewRoute(e.target.value)}
-                placeholder="Ej: 101"
-              />
+              <Label htmlFor="route">Selecciona Nueva Ruta</Label>
+              <Select value={newRoute} onValueChange={setNewRoute}>
+                <SelectTrigger id="route">
+                  <SelectValue placeholder="Selecciona una ruta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoutes.length > 0 ? (
+                    availableRoutes.map((route) => (
+                      <SelectItem key={route} value={route}>
+                        {route}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-gray-500">
+                      No hay rutas disponibles
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

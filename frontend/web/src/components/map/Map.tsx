@@ -98,6 +98,7 @@ interface MapProps {
   onMapClick?: (position: Position) => void;
   isSelectingRoutePoints?: boolean;
   routePoints?: Position[];
+  transitionLines?: Array<{ busId: string; from: Position; to: Position; coordinates?: Position[] }>;
 }
 
 const BUS_STATUS_COLORS = {
@@ -252,7 +253,7 @@ const updateBusRoute = (bus: Bus, mapInstance: MapboxMap) => {
   }
 };
 
-export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId, onMapClick, isSelectingRoutePoints, routePoints = [] }: MapProps) {
+export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId, onMapClick, isSelectingRoutePoints, routePoints = [], transitionLines = [] }: MapProps) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapboxMap | null>(null);
   const firstFitRef = useRef(false);
@@ -644,6 +645,16 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId,
             'line-opacity': 1
           }
         });
+      } else if (map.current.getSource('route') && buses[0]?.routeCoordinates) {
+        // Update existing route source with new data
+        (map.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: buses[0].routeCoordinates.map(pos => [pos.lng, pos.lat])
+          }
+        } as any);
       }
 
       // Añadir marcadores de paradas
@@ -699,6 +710,114 @@ export default function Map({ buses = [], onBusSelect = () => {}, selectedBusId,
 
     return cleanup;
   }, []); // Empty dependency array means this effect runs once on mount
+
+  // Handle transition lines (morado) from current position to new route start
+  useEffect(() => {
+    if (!HAS_MAPBOX_TOKEN || !map.current) {
+      console.log('Transition lines effect: missing token or map');
+      return;
+    }
+
+    console.log('Transition lines effect triggered:', transitionLines);
+
+    // Function to add transition lines
+    const addTransitionLines = () => {
+      if (!map.current) return;
+
+      console.log('addTransitionLines called, map loaded:', map.current.loaded());
+
+      // Remove old transition lines
+      if (map.current.getLayer('transition-lines')) {
+        map.current.removeLayer('transition-lines');
+      }
+      if (map.current.getSource('transition-lines')) {
+        map.current.removeSource('transition-lines');
+      }
+
+      // If no transition lines, return
+      if (!transitionLines || transitionLines.length === 0) {
+        console.log('No transition lines to display');
+        return;
+      }
+
+      console.log('Creating transition lines with data:', transitionLines);
+
+      // Create GeoJSON for all transition lines
+      const features = transitionLines.map(line => {
+        // Use actual coordinates if available, otherwise use direct line
+        const coords = line.coordinates 
+          ? line.coordinates.map(c => [c.lng, c.lat])
+          : [[line.from.lng, line.from.lat], [line.to.lng, line.to.lat]];
+        
+        return {
+          type: 'Feature' as const,
+          properties: { busId: line.busId },
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: coords
+          }
+        };
+      });
+
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: features as any
+      };
+
+      console.log('Transition lines GeoJSON:', geojson);
+
+      try {
+        // Add source for transition lines
+        if (!map.current.getSource('transition-lines')) {
+          map.current.addSource('transition-lines', {
+            type: 'geojson',
+            data: geojson
+          });
+        } else {
+          (map.current.getSource('transition-lines') as mapboxgl.GeoJSONSource).setData(geojson);
+        }
+
+        // Add layer if it doesn't exist
+        if (!map.current.getLayer('transition-lines')) {
+          map.current.addLayer({
+            id: 'transition-lines',
+            type: 'line',
+            source: 'transition-lines',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#A855F7', // Purple/Morado
+              'line-width': 4,
+              'line-opacity': 0.8,
+              'line-dasharray': [2, 2] // Dashed line to differentiate from main route
+            }
+          });
+          console.log('Transition lines layer added to map');
+        } else {
+          console.log('Transition lines layer already exists, updating data');
+        }
+      } catch (err) {
+        console.error('Error adding transition lines:', err);
+        // If error (likely layer not ready), wait for style to load
+        if (map.current && !map.current.loaded()) {
+          console.log('Style not ready yet, waiting for style.load');
+          map.current.once('style.load', addTransitionLines);
+        }
+      }
+    };
+
+    // Try to add immediately, if it fails due to style not being loaded, wait
+    try {
+      addTransitionLines();
+    } catch (err) {
+      console.log('Initial add failed, will retry on style.load');
+      if (map.current) {
+        map.current.once('style.load', addTransitionLines);
+      }
+    }
+  }, [transitionLines]);
 
   // Show error message if Mapbox token is not configured
   if (!HAS_MAPBOX_TOKEN) {
