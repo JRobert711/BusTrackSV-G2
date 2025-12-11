@@ -69,7 +69,8 @@ const config = {
     FIREBASE_SERVICE_ACCOUNT_BASE64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || null,
 
     // Path to service account JSON file (useful for local development)
-    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
+    // Default to local dev service account if env var is not provided
+    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || 'src/config/firebase-adminsdk.json',
 
     // Firebase Database URL (optional, depends on your Firebase setup)
     FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL || null

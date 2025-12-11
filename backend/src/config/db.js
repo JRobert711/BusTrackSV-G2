@@ -53,9 +53,15 @@ function initializeFirebase() {
     try {
       // Resolve path relative to backend directory (2 levels up from src/config)
       const backendRoot = path.resolve(__dirname, '../..');
-      const credentialsPath = path.resolve(backendRoot, GOOGLE_APPLICATION_CREDENTIALS);
+      let credentialsPath = path.resolve(backendRoot, GOOGLE_APPLICATION_CREDENTIALS);
       
-      // Use fs.readFileSync instead of require() to properly handle \n in private_key
+      // If the provided path does not exist, fallback to the bundled default
+      if (!fs.existsSync(credentialsPath)) {
+        const fallbackPath = path.resolve(backendRoot, 'src/config/firebase-adminsdk.json');
+        console.warn(`⚠️  File not found at ${credentialsPath}. Falling back to ${fallbackPath}`);
+        credentialsPath = fallbackPath;
+      }
+      
       if (!fs.existsSync(credentialsPath)) {
         throw new Error(`File not found: ${credentialsPath}`);
       }
@@ -68,7 +74,7 @@ function initializeFirebase() {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
       
-      console.log(`✓ Firebase credentials loaded from ${GOOGLE_APPLICATION_CREDENTIALS}`);
+      console.log(`✓ Firebase credentials loaded from ${credentialsPath}`);
     } catch (error) {
       console.error(`✗ Failed to load Firebase credentials from ${GOOGLE_APPLICATION_CREDENTIALS}:`, error.message);
       throw new Error(`Unable to load service account from path: ${GOOGLE_APPLICATION_CREDENTIALS} - ${error.message}`);
